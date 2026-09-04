@@ -8,6 +8,8 @@ use App\Models\Review;
 use App\Policies\ReviewPolicy;
 use App\Models\Book;
 use App\Policies\BookPolicy;
+use App\Models\ReadingPlan;
+use App\Policies\ReadingPlanPolicy;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Review::class => ReviewPolicy::class,
         Book::class => BookPolicy::class,
+        ReadingPlan::class => ReadingPlanPolicy::class,
     ];
 
     /**

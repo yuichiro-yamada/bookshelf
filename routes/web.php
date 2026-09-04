@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Favorite\FavoriteController;
 use App\Http\Controllers\Review\ReviewController;
 use App\Http\Controllers\Ranking\RankingController;
+use App\Http\Controllers\Report\ReportController;
+use App\Http\Controllers\ReadingPlan\ReadingPlanController;
 
 // トップページ
 Route::get('/', [BookController::class, 'index'])->name('books.index');
@@ -44,6 +46,18 @@ Route::middleware('guest')->group(function () {
 // ログイン済みのユーザーのみアクセス可能
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // マイ読書レポート
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+    // 読書計画一覧・登録・編集・読了・削除（ログインユーザー自身の計画のみ）
+    Route::get('/reading-plans', [ReadingPlanController::class, 'index'])->name('reading-plans.index');
+    Route::get('/reading-plans/create', [ReadingPlanController::class, 'create'])->name('reading-plans.create');
+    Route::post('/reading-plans', [ReadingPlanController::class, 'store'])->name('reading-plans.store');
+    Route::get('/reading-plans/{readingPlan}/edit', [ReadingPlanController::class, 'edit'])->name('reading-plans.edit');
+    Route::put('/reading-plans/{readingPlan}', [ReadingPlanController::class, 'update'])->name('reading-plans.update');
+    Route::post('/reading-plans/{readingPlan}/complete', [ReadingPlanController::class, 'complete'])->name('reading-plans.complete');
+    Route::delete('/reading-plans/{readingPlan}', [ReadingPlanController::class, 'destroy'])->name('reading-plans.destroy');
 
     // お気に入り一覧・登録・解除
     Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
