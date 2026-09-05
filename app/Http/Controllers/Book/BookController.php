@@ -7,6 +7,7 @@ use App\Http\Requests\Book\BookRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Book;
 use App\Models\Genre;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -14,15 +15,49 @@ class BookController extends Controller
 {
     /**
      * 書籍一覧画面を表示する
+     *
+     * キーワード検索（タイトル・著者名）、ジャンル絞り込み、並び替えに対応する。
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $books = Book::with('genres')
-            ->withAvg('reviews', 'rating')
-            ->latest()
-            ->paginate(9);
+        $keyword = trim((string) $request->input('keyword', ''));
+        $genreId = $request->input('genre');
+        $sort = $request->input('sort', 'newest');
 
-        return view('books.index', compact('books'));
+        $query = Book::with('genres')
+            ->withAvg('reviews', 'rating');
+
+        if ($keyword !== '') {
+            $escaped = addcslashes($keyword, '%_\\');
+
+            $query->where(function ($q) use ($escaped) {
+                $q->where('title', 'like', "%{$escaped}%")
+                    ->orWhere('author', 'like', "%{$escaped}%");
+            });
+        }
+
+        if (filled($genreId)) {
+            $query->whereHas('genres', function ($q) use ($genreId) {
+                $q->where('genres.id', $genreId);
+            });
+        }
+
+        // created_at は同一秒内にまとめて登録されたデータだと値が重複しうるため、
+        // id を第2キーにして並び順を一意に確定させる（id は登録順と一致する）。
+        match ($sort) {
+            'oldest' => $query->oldest()->oldest('id'),
+            'rating' => $query->orderByDesc('reviews_avg_rating')->latest()->latest('id'),
+            'title' => $query->orderBy('title')->orderBy('id'),
+            default => $query->latest()->latest('id'),
+        };
+
+        $books = $query->paginate(9)->withQueryString();
+
+        $genres = Genre::orderBy('name')->get();
+
+        $hasAnyBooks = Book::query()->exists();
+
+        return view('books.index', compact('books', 'genres', 'hasAnyBooks'));
     }
 
     /**
