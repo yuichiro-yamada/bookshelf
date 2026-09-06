@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\ReadingPlanStatus;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,16 +29,21 @@ class ReadingPlan extends Model
         'user_id',
         'target_date',
         'completed_at',
+        'status',
     ];
 
     /**
      * 属性のキャスト定義
+     *
+     * status は ReadingPlanStatus（バックドEnum）に自動キャストされる。
+     * 取得時は ReadingPlanStatus インスタンス、保存時は文字列（value）として扱われる。
      *
      * @var array<string, string>
      */
     protected $casts = [
         'target_date' => 'date',
         'completed_at' => 'date',
+        'status' => ReadingPlanStatus::class,
     ];
 
     /**
@@ -59,19 +63,17 @@ class ReadingPlan extends Model
     }
 
     /**
-     * 状態（target_date / completed_at から動的に判定）
+     * 期日を過ぎている「進行中」の計画を、まとめて「期限超過」に更新する
+     *
+     * status を実カラムとして持つ設計にしたため、target_date が過ぎても
+     * 自動では値が変わらない。一覧・編集画面を表示する直前にこのメソッドを
+     * 呼び出し、表示前に整合性を取っている（判定基準はここに集約する）。
      */
-    protected function status(): Attribute
+    public static function markOverdueForUser(int $userId): void
     {
-        return Attribute::make(
-            get: fn (): ReadingPlanStatus => match (true) {
-                /*　completed_at に日付が入っていれば Completed（完了）　*/
-                $this->completed_at !== null => ReadingPlanStatus::Completed,
-                /*　未完了かつ、target_date（目標期日）が今日より前（lt = less than）なら Overdue（期限切れ）　*/
-                $this->target_date->lt(Carbon::today()) => ReadingPlanStatus::Overdue,
-                /*　それ以外（今日以降が期限）なら InProgress（進行中）*/
-                default => ReadingPlanStatus::InProgress,
-            },
-        );
+        static::where('user_id', $userId)
+            ->where('status', ReadingPlanStatus::InProgress->value)
+            ->whereDate('target_date', '<', Carbon::today())
+            ->update(['status' => ReadingPlanStatus::Overdue->value]);
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Report;
 
 use App\Http\Controllers\Controller;
 use App\Models\Genre;
-use App\Models\ReadingPlan;
 use App\Models\Review;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -22,17 +21,15 @@ class ReportController extends Controller
 
         $summary = [
             'total_reviews' => $reviews->count(),
-            'books_read' => ReadingPlan::where('user_id', $userId)
-                ->whereNotNull('completed_at')
-                ->pluck('book_id')
-                ->unique()
-                ->count(),
+            // レビューは1書籍につき1件（reviewsテーブルのuser_id, book_idにユニーク制約）のため、
+            // 読了冊数 = レビューを書いた本のユニーク数 = 総レビュー数 と一致する
+            'books_read' => $reviews->pluck('book_id')->unique()->count(),
             'average_rating' => $reviews->avg('rating') ?? 0,
         ];
 
-        // 評価分布（★1〜★5、インデックス0〜4）
+        // 評価分布（★1〜★5、インデックス0〜4。表示順は★1が上、★5が下）
         $ratingCounts = $reviews->countBy('rating');
-        $ratingDistribution = collect(range(5, 1))
+        $ratingDistribution = collect(range(1, 5))
             ->mapWithKeys(fn (int $rating) => [$rating - 1 => $ratingCounts->get($rating, 0)]);
 
         // 高評価書籍TOP5（4以上）

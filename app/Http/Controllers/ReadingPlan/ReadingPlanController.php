@@ -21,19 +21,20 @@ class ReadingPlanController extends Controller
     public function index(Request $request): View
     {
         $currentStatus = $request->query('status');
-
-        $readingPlans = ReadingPlan::with('book')
-            ->where('user_id', Auth::id())
-            ->orderBy('target_date')
-            ->get();
-
         $statusFilter = ReadingPlanStatus::tryFrom((string) $currentStatus);
 
+        // 表示前に、期日を過ぎた「進行中」の計画を「期限超過」に更新しておく
+        ReadingPlan::markOverdueForUser(Auth::id());
+
+        $query = ReadingPlan::with('book')
+            ->where('user_id', Auth::id())
+            ->orderBy('target_date');
+
         if ($statusFilter !== null) {
-            $readingPlans = $readingPlans
-                ->filter(fn (ReadingPlan $plan) => $plan->status === $statusFilter)
-                ->values();
+            $query->where('status', $statusFilter->value);
         }
+
+        $readingPlans = $query->get();
 
         return view('reading-plans.index', compact('readingPlans', 'currentStatus'));
     }
@@ -70,6 +71,7 @@ class ReadingPlanController extends Controller
             'book_id' => $book->id,
             'user_id' => Auth::id(),
             'target_date' => $validated['target_date'],
+            'status' => ReadingPlanStatus::InProgress,
         ]);
 
         return redirect()->route('reading-plans.index')->with('success', "「{$book->title}」の読書計画を作成しました。");
@@ -82,6 +84,9 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('update', $readingPlan);
 
+        ReadingPlan::markOverdueForUser(Auth::id());
+        $readingPlan->refresh();
+
         return view('reading-plans.edit', compact('readingPlan'));
     }
 
@@ -92,10 +97,16 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('update', $readingPlan);
 
+        if ($readingPlan->status === ReadingPlanStatus::Completed) {
+            abort(403);
+        }
+
         $validated = $request->validated();
 
+        // target_date は「今日以降」しか許可していないため、更新後は必ず「進行中」になる
         $readingPlan->update([
             'target_date' => $validated['target_date'],
+            'status' => ReadingPlanStatus::InProgress,
         ]);
 
         return redirect()->route('reading-plans.index')->with('success', '読書計画を更新しました。');
@@ -110,6 +121,7 @@ class ReadingPlanController extends Controller
 
         $readingPlan->update([
             'completed_at' => Carbon::today(),
+            'status' => ReadingPlanStatus::Completed,
         ]);
 
         return redirect()->route('reading-plans.index')->with('success', "「{$readingPlan->book->title}」を読了しました。");

@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->date('target_date');
             $table->date('completed_at')->nullable();
+            $table->enum('status', ['in_progress', 'overdue', 'completed'])
+                ->default('in_progress');
             $table->timestamps();
         });
     }

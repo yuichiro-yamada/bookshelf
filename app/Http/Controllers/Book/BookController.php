@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Book;
 use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Book\BookRequest;
+use App\Http\Requests\Book\SearchIsbnRequest;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Book;
 use App\Models\Genre;
@@ -86,12 +87,8 @@ class BookController extends Controller
     /**
      * ISBNからGoogle Books APIで書籍情報を取得する（Ajax用）
      */
-    public function searchIsbn(string $isbn): \Illuminate\Http\JsonResponse
+    public function searchIsbn(SearchIsbnRequest $request, string $isbn): \Illuminate\Http\JsonResponse
     {
-        if (!preg_match('/^\d{13}$/', $isbn)) {
-            return response()->json(['error' => 'ISBNは13桁の数字で入力してください。'], 422);
-        }
-
         $response = Http::get('https://www.googleapis.com/books/v1/volumes', [
             'q' => 'isbn:' . $isbn,
             'key' => config('services.google_books.key'),
