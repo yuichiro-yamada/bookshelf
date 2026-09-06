@@ -16,6 +16,9 @@ Route::get('/', [BookController::class, 'index'])->name('books.index');
 // 書籍登録画面の表示
 Route::get('/books/create', [BookController::class, 'create'])->name('books.create')->middleware('auth');
 
+// ISBNから書籍情報を取得（Ajax用）
+Route::get('/books/isbn/{isbn}', [BookController::class, 'searchIsbn'])->name('books.isbn')->middleware('auth');
+
 // 書籍の保存処理（通常、次に必要になります）
 Route::post('/books', [BookController::class, 'store'])->name('books.store')->middleware('auth');
 
