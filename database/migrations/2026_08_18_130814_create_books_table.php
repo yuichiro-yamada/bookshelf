@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('books', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
+            $table->string('title')->unique();
             $table->text('author');
-            $table->string('isbn', 13);
+            $table->string('isbn', 13)->unique();
             $table->date('published_date');
             $table->text('description')->nullable();
             $table->string('image_url', 2048)->nullable();
