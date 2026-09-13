@@ -2,7 +2,9 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Request;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -19,12 +21,34 @@ class Handler extends ExceptionHandler
     ];
 
     /**
+     * モデルクラス名（class_basename）と、404時に返す日本語メッセージの対応表
+     *
+     * @var array<string, string>
+     */
+    protected array $notFoundMessages = [
+        'Book' => '指定された書籍が見つかりません',
+    ];
+
+    /**
      * Register the exception handling callbacks for the application.
      */
     public function register(): void
     {
         $this->reportable(function (Throwable $e) {
             //
+        });
+
+        // ルートモデルバインディングで該当データが見つからなかった場合、
+        // JSON（API）リクエストにはデフォルトの英語メッセージではなく
+        // 日本語のメッセージを返す。
+        $this->renderable(function (ModelNotFoundException $e, Request $request) {
+            if ($request->expectsJson()) {
+                $model = class_basename($e->getModel());
+
+                return response()->json([
+                    'message' => $this->notFoundMessages[$model] ?? '指定されたデータが見つかりません',
+                ], 404);
+            }
         });
     }
 }
