@@ -42,7 +42,7 @@ class ReadingPlan extends Model
      */
     protected $casts = [
         'target_date' => 'date',
-        'completed_at' => 'date',
+        'completed_at' => 'datetime',
         'status' => ReadingPlanStatus::class,
     ];
 
@@ -69,11 +69,11 @@ class ReadingPlan extends Model
      * 自動では値が変わらない。一覧・編集画面を表示する直前にこのメソッドを
      * 呼び出し、表示前に整合性を取っている（判定基準はここに集約する）。
      */
-    public static function markOverdueForUser(int $userId): void
+    public static function markExpiredForUser(int $userId): void
     {
         static::where('user_id', $userId)
             ->where('status', ReadingPlanStatus::InProgress->value)
             ->whereDate('target_date', '<', Carbon::today())
-            ->update(['status' => ReadingPlanStatus::Overdue->value]);
+            ->update(['status' => ReadingPlanStatus::Expired->value]);
     }
 }
