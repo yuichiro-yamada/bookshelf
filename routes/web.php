@@ -9,6 +9,7 @@ use App\Http\Controllers\Review\ReviewController;
 use App\Http\Controllers\Ranking\RankingController;
 use App\Http\Controllers\Report\ReportController;
 use App\Http\Controllers\ReadingPlan\ReadingPlanController;
+use App\Http\Controllers\NotificationController;
 
 // トップページ
 Route::get('/', [BookController::class, 'index'])->name('books.index');
@@ -84,4 +85,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/reviews/{review}/edit', [ReviewController::class, 'edit'])->name('reviews.edit');
     Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+
+    // 通知機能
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/{id}', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+
 });

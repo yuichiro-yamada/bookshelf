@@ -24,7 +24,7 @@ class ReadingPlanController extends Controller
         $statusFilter = ReadingPlanStatus::tryFrom((string) $currentStatus);
 
         // 表示前に、期日を過ぎた「進行中」の計画を「期限超過」に更新しておく
-        ReadingPlan::markOverdueForUser(Auth::id());
+        ReadingPlan::markExpiredForUser(Auth::id());
 
         $query = ReadingPlan::with('book')
             ->where('user_id', Auth::id())
@@ -84,7 +84,7 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('update', $readingPlan);
 
-        ReadingPlan::markOverdueForUser(Auth::id());
+        ReadingPlan::markExpiredForUser(Auth::id());
         $readingPlan->refresh();
 
         return view('reading-plans.edit', compact('readingPlan'));
@@ -120,7 +120,7 @@ class ReadingPlanController extends Controller
         $this->authorize('update', $readingPlan);
 
         $readingPlan->update([
-            'completed_at' => Carbon::today(),
+            'completed_at' => Carbon::now(),
             'status' => ReadingPlanStatus::Completed,
         ]);
 

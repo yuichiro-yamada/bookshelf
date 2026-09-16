@@ -16,10 +16,13 @@ return new class extends Migration
             $table->foreignId('book_id')->constrained('books')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->date('target_date');
-            $table->date('completed_at')->nullable();
-            $table->enum('status', ['in_progress', 'overdue', 'completed'])
+            $table->timestamp('completed_at')->nullable();
+            $table->enum('status', ['in_progress', 'completed', 'expired'])
                 ->default('in_progress');
             $table->timestamps();
+
+            $table->index(['user_id', 'status']);
+            $table->index('target_date');
         });
     }
 

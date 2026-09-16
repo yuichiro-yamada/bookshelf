@@ -12,11 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('review_likes', function (Blueprint $table) {
-            $table->foreignId('review_id')->constrained('reviews')->cascadeOnDelete();
+            $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('review_id')->constrained('reviews')->cascadeOnDelete();
             $table->timestamps();
 
-            $table->primary(['review_id', 'user_id']);
+            $table->unique(['user_id', 'review_id']);
         });
     }
 

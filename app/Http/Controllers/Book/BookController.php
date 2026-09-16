@@ -24,7 +24,7 @@ class BookController extends Controller
     {
         $keyword = $request->input('keyword', '');
         $genreId = $request->input('genre');
-        $sort = $request->input('sort', 'newest');
+        $sort = $request->input('sort', 'latest');
 
         // キーワード検索・ジャンル絞り込みは、API用コントローラー（Api\V1\Book\BookController）
         // と共通のロジックを Book モデルのローカルスコープ（searchKeyword・filterByGenre）に
@@ -38,8 +38,9 @@ class BookController extends Controller
         // id を第2キーにして並び順を一意に確定させる（id は登録順と一致する）。
         match ($sort) {
             'oldest' => $query->oldest()->oldest('id'),
-            'rating' => $query->orderByDesc('reviews_avg_rating')->latest()->latest('id'),
             'title' => $query->orderBy('title')->orderBy('id'),
+            'rating' => $query->orderByDesc('reviews_avg_rating')->latest()->latest('id'),
+            'latest' => $query->latest()->latest('id'),
             default => $query->latest()->latest('id'),
         };
 
