@@ -26,10 +26,11 @@ class ReadingPlanReminder extends Notification
     public function toDatabase(object $notifiable): array
     {
         return [
-            'reading_plan_id' => $this->readingPlan->id,
+            'plan_id' => $this->readingPlan->id,
+            'book_title' => $this->readingPlan->book->title,
+            'timing' => $this->timingKey(),
             'title' => $this->buildTitle(),
             'body' => $this->buildMessage(),
-            'timing' => $this->timingKey(),
         ];
     }
 
