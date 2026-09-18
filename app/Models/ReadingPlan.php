@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ReadingPlanStatus;
+use App\Notifications\ReadingPlanReminder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -45,6 +46,29 @@ class ReadingPlan extends Model
         'completed_at' => 'datetime',
         'status' => ReadingPlanStatus::class,
     ];
+
+    /**
+     * モデルイベントの登録
+     *
+     * 読書計画が削除されるとき、その計画に紐づいて送信済みの
+     * リマインダー通知（ReadingPlanReminder）も、通知を受け取った
+     * ユーザーの通知一覧からあわせて削除する。
+     * notifications.data は text カラムに保存されたJSONで、DB側の
+     * JSON演算子はドライバ（sqlite/mysql）によって扱いが異なるため、
+     * DatabaseNotification の data キャスト（配列）を介してPHP側で
+     * plan_id を照合する。
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (ReadingPlan $readingPlan) {
+            $readingPlan->user
+                ->notifications()
+                ->where('type', ReadingPlanReminder::class)
+                ->get()
+                ->filter(fn ($notification) => (int) ($notification->data['plan_id'] ?? 0) === (int) $readingPlan->id)
+                ->each(fn ($notification) => $notification->delete());
+        });
+    }
 
     /**
      * この読書計画の対象書籍
