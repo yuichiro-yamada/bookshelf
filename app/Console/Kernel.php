@@ -12,9 +12,11 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // 失効判定を先に行ってから、当日分の通知判定を行う(元の実行順を踏襲)
-        $schedule->command('reading-plans:expire')->dailyAt('22:00');
-        $schedule->command('reading-plans:remind')->dailyAt('22:00');
+        // 期日を過ぎた進行中の計画を「期限超過」に更新する（日付が変わった直後に実行）
+        $schedule->command('reading-plans:expire')->dailyAt('00:00');
+
+        // 期日に応じたリマインダー通知を送信する（要件: 20時）
+        $schedule->command('reading-plans:remind')->dailyAt('20:00');
     }
 
     /**
