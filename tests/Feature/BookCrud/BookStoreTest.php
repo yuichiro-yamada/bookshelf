@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Book;
+namespace Tests\Feature\BookCrud;
 
 use App\Models\Book;
 use App\Models\Genre;
