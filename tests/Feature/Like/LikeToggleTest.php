@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Review;
+namespace Tests\Feature\Like;
 
 use App\Models\Book;
 use App\Models\Review;
@@ -11,7 +11,7 @@ use Tests\TestCase;
 /**
  * レビューへのいいねの切り替えのテスト（テストケース一覧「レビューへのいいねの切り替え」に対応）
  */
-class ReviewLikeTest extends TestCase
+class LikeToggleTest extends TestCase
 {
     use RefreshDatabase;
 
