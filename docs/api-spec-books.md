@@ -1,6 +1,6 @@
 # 書籍API仕様書（サンプル）
 
-対象: Bookshelfアプリ 公開API `/api/v1/books`
+対象: Bookshelfアプリ 公開API `/api/v1/books`、アクセストークン発行API `/api/v1/auth/token`
 
 このドキュメントは、実装したコード（`app/Http/Controllers/Api/V1/Book/BookController.php` など）をもとに作成したサンプルです。レビュー用の資料として使う場合は、実際のプロジェクトの命名規則やフォーマットに合わせて調整してください。
 
@@ -15,7 +15,8 @@ http://localhost/api/v1
 ### 認証方式
 
 - Laravel Sanctumによるトークン認証（Bearer Token）
-- 書き込み系（登録・更新・削除）のみ認証が必要
+- 書き込み系（登録・更新・削除）のみ認証が必要（一覧・詳細取得は認証不要）
+- トークンは「6. アクセストークンを発行する」（`POST /api/v1/auth/token`）で、メールアドレスとパスワードを送って取得する
 - 認証が必要なエンドポイントには、リクエストヘッダーに以下を付与する
 
 ```
@@ -28,7 +29,7 @@ Accept: application/json
 | ステータスコード | 意味 | 発生条件 |
 |---|---|---|
 | 200 OK | 正常終了 | 一覧・詳細取得、更新が成功したとき |
-| 201 Created | 作成成功 | 書籍登録が成功したとき |
+| 201 Created | 作成成功 | 書籍登録、アクセストークン発行が成功したとき |
 | 204 No Content | 削除成功 | 書籍削除が成功したとき（レスポンスボディなし） |
 | 401 Unauthorized | 未認証 | 認証が必要なエンドポイントに未ログイン状態でアクセスしたとき |
 | 403 Forbidden | 認可エラー | 自分が登録していない書籍を更新・削除しようとしたとき |
@@ -120,8 +121,8 @@ Accept: application/json
 | id | integer | ○ | 書籍ID | `1` |
 | title | string | ○ | 書籍タイトル | `"こころ"` |
 | author | string | ○ | 著者名 | `"夏目漱石"` |
-| isbn | string | ○ | ISBN（13桁） | `"9784101010014"` |
-| published_date | string（YYYY-MM-DD） | ○ | 出版日 | `"1914-04-20"` |
+| isbn | string \| null | - | ISBN（13桁。未登録の場合は null） | `"9784101010014"` |
+| published_date | string（YYYY-MM-DD） \| null | - | 出版日（未登録の場合は null） | `"1914-04-20"` |
 | description | string \| null | - | 書籍の説明 | `"友人の裏切りから..."` |
 | image_url | string \| null | - | 書影画像のURL | `"https://example.com/cover.jpg"` |
 | user_id | integer | ○ | 登録者のユーザーID | `3` |
@@ -310,12 +311,12 @@ Accept: application/json
 
 | 項目 | 型 | 必須 | 説明 | 例 |
 |---|---|---|---|---|
-| title | string | ○ | 書籍タイトル（最大255文字、重複不可） | `"坊っちゃん"` |
+| title | string | ○ | 書籍タイトル（最大255文字） | `"坊っちゃん"` |
 | author | string | ○ | 著者名（最大255文字） | `"夏目漱石"` |
-| isbn | string | ○ | ISBN（数字13桁、重複不可） | `"9784101010021"` |
-| published_date | string（日付） | ○ | 出版日 | `"1906-04-01"` |
+| isbn | string | - | ISBN（数字13桁、重複不可） | `"9784101010021"` |
+| published_date | string（日付） | - | 出版日 | `"1906-04-01"` |
 | description | string | - | 書籍の説明（最大1000文字） | `"江戸っ子気質の..."` |
-| image_url | string（URL） | - | 書影画像のURL（最大2048文字） | `"https://example.com/cover2.jpg"` |
+| image_url | string（URL） | - | 書影画像のURL（最大255文字） | `"https://example.com/cover2.jpg"` |
 | genres | array\<integer\> | ○ | ジャンルIDの配列（1つ以上、存在するジャンルIDのみ） | `[1, 3]` |
 
 ### バリデーションエラーメッセージ
@@ -324,17 +325,14 @@ Accept: application/json
 |---|---|---|
 | title | required | 書籍タイトルを入力してください |
 | title | max:255 | 書籍タイトルは255文字以内で入力してください |
-| title | unique | この書籍タイトルはすでに登録されています |
 | author | required | 著者名を入力してください |
 | author | max:255 | 著者名は255文字以内で入力してください |
-| isbn | required | ISBNを入力してください |
 | isbn | digits:13 | ISBNは13桁の数字で入力してください |
 | isbn | unique | このISBNはすでに登録されています |
-| published_date | required | 出版日を入力してください |
 | published_date | date | 正しい出版日を入力してください |
 | description | max:1000 | 説明は1000文字以内で入力してください |
 | image_url | url | URL形式で入力してください |
-| image_url | max:2048 | 画像URLは2048文字以内で入力してください |
+| image_url | max:255 | 画像URLは255文字以内で入力してください |
 | genres | required | ジャンルを1つ以上選択してください |
 | genres | array | ジャンルの選択肢が不正です |
 | genres.* | integer / exists | 選択されたジャンルが正しくありません／選択されたジャンルは存在しません |
@@ -392,7 +390,7 @@ Accept: application/json
 
 ### リクエストボディ
 
-「3. 書籍を新規登録する」と同じ項目・バリデーションルール（`title`・`isbn` の重複チェックは自分自身を除外して判定する）。
+「3. 書籍を新規登録する」と同じ項目・バリデーションルール（`isbn` の重複チェックは自分自身を除外して判定する）。
 
 ### レスポンス（200 OK）
 
@@ -438,3 +436,68 @@ Accept: application/json
 | 401 Unauthorized | Sanctumトークンが無い、または無効なとき |
 | 403 Forbidden | 自分が登録していない書籍を削除しようとしたとき |
 | 404 Not Found | 指定したIDの書籍が存在しないとき |
+
+---
+
+## 6. アクセストークンを発行する
+
+### エンドポイント
+
+| 項目 | 内容 |
+|---|---|
+| メソッド | POST |
+| URI | `/api/v1/auth/token` |
+| 認証 | 不要（メールアドレスとパスワードで本人確認する） |
+
+登録済みの会員のメールアドレスとパスワードを送ると、Sanctumの個人アクセストークンを発行して返す。発行したトークンは、書籍の登録・更新・削除など認証が必要なAPIに `Authorization: Bearer {トークン}` として付与して使う。
+
+トークンの平文はこのレスポンスでしか取得できない（サーバー側にはハッシュ化して保存されるため、後から確認できない）。紛失した場合は再度発行する。同じ会員が複数回発行することができ、発行したトークンはそれぞれ独立して使える。
+
+### リクエストボディ
+
+| 項目 | 型 | 必須 | 説明 | 例 |
+|---|---|---|---|---|
+| email | string | ○ | 会員のメールアドレス | `"taro@example.com"` |
+| password | string | ○ | 会員のパスワード | `"password123"` |
+| device_name | string | - | トークンの名前（利用する端末・アプリの識別用、最大255文字）。省略時は `api-token` | `"my-script"` |
+
+### バリデーションエラーメッセージ
+
+| 項目 | ルール | メッセージ |
+|---|---|---|
+| email | required | メールアドレスを入力してください |
+| email | email | メールアドレスはメール形式で入力してください |
+| password | required | パスワードを入力してください |
+| password | 会員情報との一致 | 会員情報が登録されていません |
+| device_name | max:255 | トークン名は255文字以内で入力してください |
+
+メールアドレスとパスワードが会員情報と一致しない場合は、画面のログインと同じく `password` に「会員情報が登録されていません」のエラーを返す（メールアドレスが未登録の場合と、パスワードが違う場合は区別しない）。
+
+### レスポンス（201 Created）
+
+| 項目 | 型 | 必須 | 説明 | 例 |
+|---|---|---|---|---|
+| token | string | ○ | アクセストークン（平文） | `"1\|Xk3...（省略）"` |
+| token_type | string | ○ | トークンの種類（常に `Bearer`） | `"Bearer"` |
+
+```json
+{
+    "token": "1|Xk3q9P...（省略）",
+    "token_type": "Bearer"
+}
+```
+
+### エラーレスポンス
+
+| ステータス | 条件 |
+|---|---|
+| 422 Unprocessable Entity | バリデーションエラーのとき、またはメールアドレス・パスワードが会員情報と一致しないとき |
+
+```json
+{
+    "message": "会員情報が登録されていません",
+    "errors": {
+        "password": ["会員情報が登録されていません"]
+    }
+}
+```
