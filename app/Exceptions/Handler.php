@@ -5,6 +5,7 @@ namespace App\Exceptions;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -41,9 +42,15 @@ class Handler extends ExceptionHandler
         // ルートモデルバインディングで該当データが見つからなかった場合、
         // JSON（API）リクエストにはデフォルトの英語メッセージではなく
         // 日本語のメッセージを返す。
-        $this->renderable(function (ModelNotFoundException $e, Request $request) {
-            if ($request->expectsJson()) {
-                $model = class_basename($e->getModel());
+        //
+        // Laravel は renderable を呼ぶ前に ModelNotFoundException を
+        // NotFoundHttpException に置き換えるため、ここでは NotFoundHttpException を
+        // 受け取り、元の例外（getPrevious）が ModelNotFoundException かどうかで判定する。
+        $this->renderable(function (NotFoundHttpException $e, Request $request) {
+            $previous = $e->getPrevious();
+
+            if ($previous instanceof ModelNotFoundException && $request->expectsJson()) {
+                $model = class_basename($previous->getModel());
 
                 return response()->json([
                     'message' => $this->notFoundMessages[$model] ?? '指定されたデータが見つかりません',
