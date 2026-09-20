@@ -24,8 +24,6 @@ Authorization: Bearer {トークン}
 Accept: application/json
 ```
 
-`Accept: application/json` を付けなくても、`/api/*` のレスポンスは（エラー時も含めて）常にJSONで返る（未認証はログイン画面へのリダイレクトにならず、`401` のJSONを返す）。付けることを推奨する。
-
 ### 共通HTTPステータスコード
 
 | ステータスコード | 意味 | 発生条件 |
