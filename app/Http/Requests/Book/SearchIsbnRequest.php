@@ -38,7 +38,7 @@ class SearchIsbnRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'isbn' => ['required', 'digits:13', 'unique:books,isbn'],
+            'isbn' => ['required', 'digits:13'],
         ];
     }
 
@@ -52,7 +52,6 @@ class SearchIsbnRequest extends FormRequest
         return [
             'isbn.required' => 'ISBNを入力してください',
             'isbn.digits' => 'ISBNは13桁の数字で入力してください',
-            'isbn.unique' => 'このISBNはすでに登録されています',
         ];
     }
 

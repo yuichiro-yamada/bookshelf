@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Genre;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Genre\GenreRequest;
 use App\Models\Genre;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -69,13 +70,23 @@ class GenreController extends Controller
     /**
      * ジャンルを削除する
      *
-     * book_genreテーブルの外部キー制約（genre_id側はcascadeOnDelete）により、
-     * このジャンルに紐づく書籍がある場合も、書籍自体は削除されず
-     * そのジャンルとの紐付けだけが自動的に削除される。
+     * book_genresテーブルの外部キー制約（genre_id側はrestrictOnDelete）により、
+     * このジャンルに紐づく書籍が1件でも存在する場合、DB側が削除を拒否してくる。
+     * その場合はエラーメッセージを表示して元の画面に戻す。
      */
     public function destroy(Genre $genre): RedirectResponse
     {
-        $genre->delete();
+        try {
+            $genre->delete();
+        } catch (QueryException $e) {
+            // SQLSTATE 23000: 整合性制約違反（外部キー制約違反を含む）
+            if ($e->getCode() === '23000') {
+                return back()->with('error', 'このジャンルは書籍に紐づいているため削除できません。');
+            }
+
+            // 制約違反以外のエラーは想定外なのでそのまま投げる
+            throw $e;
+        }
 
         return back()->with('success', 'ジャンルを削除しました。');
     }
