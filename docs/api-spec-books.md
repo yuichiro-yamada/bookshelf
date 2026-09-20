@@ -15,7 +15,8 @@ http://localhost/api/v1
 ### 認証方式
 
 - Laravel Sanctumによるトークン認証（Bearer Token）
-- 書き込み系（登録・更新・削除）のみ認証が必要
+- 書き込み系（登録・更新・削除）のみ認証が必要（一覧・詳細取得は認証不要）
+- トークンを発行するAPIは用意していない。開発・動作確認用には、`sail artisan tinker` で `User::find(1)->createToken('test')->plainTextToken` を実行して取得する
 - 認証が必要なエンドポイントには、リクエストヘッダーに以下を付与する
 
 ```
@@ -120,8 +121,8 @@ Accept: application/json
 | id | integer | ○ | 書籍ID | `1` |
 | title | string | ○ | 書籍タイトル | `"こころ"` |
 | author | string | ○ | 著者名 | `"夏目漱石"` |
-| isbn | string | ○ | ISBN（13桁） | `"9784101010014"` |
-| published_date | string（YYYY-MM-DD） | ○ | 出版日 | `"1914-04-20"` |
+| isbn | string \| null | - | ISBN（13桁。未登録の場合は null） | `"9784101010014"` |
+| published_date | string（YYYY-MM-DD） \| null | - | 出版日（未登録の場合は null） | `"1914-04-20"` |
 | description | string \| null | - | 書籍の説明 | `"友人の裏切りから..."` |
 | image_url | string \| null | - | 書影画像のURL | `"https://example.com/cover.jpg"` |
 | user_id | integer | ○ | 登録者のユーザーID | `3` |
@@ -310,12 +311,12 @@ Accept: application/json
 
 | 項目 | 型 | 必須 | 説明 | 例 |
 |---|---|---|---|---|
-| title | string | ○ | 書籍タイトル（最大255文字、重複不可） | `"坊っちゃん"` |
+| title | string | ○ | 書籍タイトル（最大255文字） | `"坊っちゃん"` |
 | author | string | ○ | 著者名（最大255文字） | `"夏目漱石"` |
-| isbn | string | ○ | ISBN（数字13桁、重複不可） | `"9784101010021"` |
-| published_date | string（日付） | ○ | 出版日 | `"1906-04-01"` |
+| isbn | string | - | ISBN（数字13桁、重複不可） | `"9784101010021"` |
+| published_date | string（日付） | - | 出版日 | `"1906-04-01"` |
 | description | string | - | 書籍の説明（最大1000文字） | `"江戸っ子気質の..."` |
-| image_url | string（URL） | - | 書影画像のURL（最大2048文字） | `"https://example.com/cover2.jpg"` |
+| image_url | string（URL） | - | 書影画像のURL（最大255文字） | `"https://example.com/cover2.jpg"` |
 | genres | array\<integer\> | ○ | ジャンルIDの配列（1つ以上、存在するジャンルIDのみ） | `[1, 3]` |
 
 ### バリデーションエラーメッセージ
@@ -324,17 +325,14 @@ Accept: application/json
 |---|---|---|
 | title | required | 書籍タイトルを入力してください |
 | title | max:255 | 書籍タイトルは255文字以内で入力してください |
-| title | unique | この書籍タイトルはすでに登録されています |
 | author | required | 著者名を入力してください |
 | author | max:255 | 著者名は255文字以内で入力してください |
-| isbn | required | ISBNを入力してください |
 | isbn | digits:13 | ISBNは13桁の数字で入力してください |
 | isbn | unique | このISBNはすでに登録されています |
-| published_date | required | 出版日を入力してください |
 | published_date | date | 正しい出版日を入力してください |
 | description | max:1000 | 説明は1000文字以内で入力してください |
 | image_url | url | URL形式で入力してください |
-| image_url | max:2048 | 画像URLは2048文字以内で入力してください |
+| image_url | max:255 | 画像URLは255文字以内で入力してください |
 | genres | required | ジャンルを1つ以上選択してください |
 | genres | array | ジャンルの選択肢が不正です |
 | genres.* | integer / exists | 選択されたジャンルが正しくありません／選択されたジャンルは存在しません |
@@ -392,7 +390,7 @@ Accept: application/json
 
 ### リクエストボディ
 
-「3. 書籍を新規登録する」と同じ項目・バリデーションルール（`title`・`isbn` の重複チェックは自分自身を除外して判定する）。
+「3. 書籍を新規登録する」と同じ項目・バリデーションルール（`isbn` の重複チェックは自分自身を除外して判定する）。
 
 ### レスポンス（200 OK）
 
