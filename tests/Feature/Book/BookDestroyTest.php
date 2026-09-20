@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\BookCrud;
+namespace Tests\Feature\Book;
 
 use App\Models\Book;
 use App\Models\User;

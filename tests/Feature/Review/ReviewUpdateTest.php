@@ -78,7 +78,6 @@ class ReviewUpdateTest extends TestCase
 
         $response = $this->actingAs($otherUser)->put(route('reviews.update', $review), [
             'rating' => 1,
-            'comment' => 'コメント',
         ]);
 
         $response->assertForbidden();

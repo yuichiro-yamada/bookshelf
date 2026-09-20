@@ -49,8 +49,8 @@ class ReportController extends Controller
 
         // ジャンル別評価傾向TOP5（平均評価が高い順）
         $genreRatings = Genre::query()
-            ->join('book_genre', 'genres.id', '=', 'book_genre.genre_id')
-            ->join('books', 'books.id', '=', 'book_genre.book_id')
+            ->join('book_genres', 'genres.id', '=', 'book_genres.genre_id')
+            ->join('books', 'books.id', '=', 'book_genres.book_id')
             ->join('reviews', 'reviews.book_id', '=', 'books.id')
             ->where('reviews.user_id', $userId)
             ->selectRaw('genres.id as id, genres.name as name, COUNT(reviews.id) as count, AVG(reviews.rating) as average_rating')

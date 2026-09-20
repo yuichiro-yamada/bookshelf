@@ -41,7 +41,7 @@ class ReviewStoreTest extends TestCase
         $response->assertSessionHasErrors(['comment' => 'コメントは255文字以内で入力してください']);
     }
 
-    public function test_comment_is_required(): void
+    public function test_review_can_be_posted_without_comment(): void
     {
         $user = User::factory()->create();
         $book = Book::factory()->for(User::factory())->create();
@@ -50,7 +50,14 @@ class ReviewStoreTest extends TestCase
             'rating' => 4,
         ]);
 
-        $response->assertSessionHasErrors(['comment' => 'コメントを入力してください']);
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'レビューを投稿しました。');
+        $this->assertDatabaseHas('reviews', [
+            'book_id' => $book->id,
+            'user_id' => $user->id,
+            'rating' => 4,
+            'comment' => null,
+        ]);
     }
 
     public function test_review_is_posted_with_valid_data(): void
@@ -81,7 +88,6 @@ class ReviewStoreTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('reviews.store', $book), [
             'rating' => 3,
-            'comment' => 'コメント',
         ]);
 
         $response->assertForbidden();

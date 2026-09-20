@@ -32,24 +32,18 @@ class BookRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
+                Rule::unique('books', 'title')->ignore($book),
             ],
             'author' => ['required', 'string', 'max:255'],
             'isbn' => [
-                'nullable', 
+                'required',
                 'digits:13',
                 Rule::unique('books', 'isbn')->ignore($book),
             ],
-            'published_date' => ['nullable', 'date'],
+            'published_date' => ['required', 'date'],
             'description' => ['nullable', 'string', 'max:1000'],
-            'image_url' => ['nullable', 'url', 'max:255'],
-            'genres' => [
-                'required',
-                'array',
-            ],
-            'genres.*' => [
-                'integer',
-                'exists:genres,id'
-            ],
+            'image_url' => ['nullable', 'url'],
+            'genres' => ['required', 'array', 'min:1'],
         ];
     }
 
@@ -63,25 +57,18 @@ class BookRequest extends FormRequest
         return [
             'title.required' => '書籍タイトルを入力してください',
             'title.max' => '書籍タイトルは255文字以内で入力してください',
-
+            'title.unique' => 'この書籍タイトルはすでに登録されています',
             'author.required' => '著者名を入力してください',
             'author.max' => '著者名は255文字以内で入力してください',
-
+            'isbn.required' => 'ISBNを入力してください',
             'isbn.digits' => 'ISBNは13桁の数字で入力してください',
             'isbn.unique' => 'このISBNはすでに登録されています',
-
+            'published_date.required' => '出版日を入力してください',
             'published_date.date' => '正しい出版日を入力してください',
-
             'description.max' => '説明は1000文字以内で入力してください',
-
             'image_url.url' => 'URL形式で入力してください',
-            'image_url.max' => '画像URLは255文字以内で入力してください',
-
             'genres.required' => 'ジャンルを1つ以上選択してください',
-            'genres.array' => 'ジャンルの選択肢が不正です',
-
-            'genres.*.integer' => '選択されたジャンルが正しくありません',
-            'genres.*.exists' => '選択されたジャンルは存在しません',
+            'genres.min' => 'ジャンルを1つ以上選択してください',
         ];
     }
 }
