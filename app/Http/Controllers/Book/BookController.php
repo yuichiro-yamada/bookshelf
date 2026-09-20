@@ -22,34 +22,25 @@ class BookController extends Controller
      */
     public function index(Request $request): View
     {
-        $keyword = trim((string) $request->input('keyword', ''));
+        $keyword = $request->input('keyword', '');
         $genreId = $request->input('genre');
-        $sort = $request->input('sort', 'newest');
+        $sort = $request->input('sort', 'latest');
 
+        // キーワード検索・ジャンル絞り込みは、API用コントローラー（Api\V1\Book\BookController）
+        // と共通のロジックを Book モデルのローカルスコープ（searchKeyword・filterByGenre）に
+        // 切り出して使っている。
         $query = Book::with('genres')
-            ->withAvg('reviews', 'rating');
-
-        if ($keyword !== '') {
-            $escaped = addcslashes($keyword, '%_\\');
-
-            $query->where(function ($q) use ($escaped) {
-                $q->where('title', 'like', "%{$escaped}%")
-                    ->orWhere('author', 'like', "%{$escaped}%");
-            });
-        }
-
-        if (filled($genreId)) {
-            $query->whereHas('genres', function ($q) use ($genreId) {
-                $q->where('genres.id', $genreId);
-            });
-        }
+            ->withAvg('reviews', 'rating')
+            ->searchKeyword($keyword)
+            ->filterByGenre($genreId);
 
         // created_at は同一秒内にまとめて登録されたデータだと値が重複しうるため、
         // id を第2キーにして並び順を一意に確定させる（id は登録順と一致する）。
         match ($sort) {
             'oldest' => $query->oldest()->oldest('id'),
-            'rating' => $query->orderByDesc('reviews_avg_rating')->latest()->latest('id'),
             'title' => $query->orderBy('title')->orderBy('id'),
+            'rating' => $query->orderByDesc('reviews_avg_rating')->latest()->latest('id'),
+            'latest' => $query->latest()->latest('id'),
             default => $query->latest()->latest('id'),
         };
 

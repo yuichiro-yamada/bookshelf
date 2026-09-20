@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Book;
+namespace Tests\Feature\BookCrud;
 
 use App\Models\Book;
 use App\Models\Genre;
@@ -58,14 +58,16 @@ class BookStoreTest extends TestCase
         $response->assertSessionHasErrors(['title' => '書籍タイトルは255文字以内で入力してください']);
     }
 
-    public function test_title_must_be_unique(): void
+    public function test_duplicate_title_is_allowed(): void
     {
         $user = User::factory()->create();
         Book::factory()->for($user)->create(['title' => '既存の書籍']);
 
         $response = $this->actingAs($user)->post(route('books.store'), $this->validPayload(['title' => '既存の書籍']));
 
-        $response->assertSessionHasErrors(['title' => 'この書籍タイトルはすでに登録されています']);
+        $response->assertRedirect(route('books.index'));
+        $response->assertSessionDoesntHaveErrors(['title']);
+        $this->assertDatabaseCount('books', 2);
     }
 
     public function test_author_is_required(): void
@@ -77,13 +79,15 @@ class BookStoreTest extends TestCase
         $response->assertSessionHasErrors(['author' => '著者名を入力してください']);
     }
 
-    public function test_isbn_is_required(): void
+    public function test_book_can_be_registered_without_isbn(): void
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post(route('books.store'), $this->validPayload(['isbn' => '']));
+        $response = $this->actingAs($user)->post(route('books.store'), $this->validPayload(['title' => 'ISBNなしの書籍', 'isbn' => '']));
 
-        $response->assertSessionHasErrors(['isbn' => 'ISBNを入力してください']);
+        $response->assertRedirect(route('books.index'));
+        $response->assertSessionDoesntHaveErrors(['isbn']);
+        $this->assertDatabaseHas('books', ['title' => 'ISBNなしの書籍', 'isbn' => null]);
     }
 
     public function test_isbn_must_be_13_digit_number(): void
@@ -105,13 +109,15 @@ class BookStoreTest extends TestCase
         $response->assertSessionHasErrors(['isbn' => 'このISBNはすでに登録されています']);
     }
 
-    public function test_published_date_is_required(): void
+    public function test_book_can_be_registered_without_published_date(): void
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post(route('books.store'), $this->validPayload(['published_date' => '']));
+        $response = $this->actingAs($user)->post(route('books.store'), $this->validPayload(['title' => '出版日なしの書籍', 'published_date' => '']));
 
-        $response->assertSessionHasErrors(['published_date' => '出版日を入力してください']);
+        $response->assertRedirect(route('books.index'));
+        $response->assertSessionDoesntHaveErrors(['published_date']);
+        $this->assertDatabaseHas('books', ['title' => '出版日なしの書籍', 'published_date' => null]);
     }
 
     public function test_description_must_not_exceed_1000_characters(): void
