@@ -18,8 +18,9 @@ class BookRequest extends FormRequest
     /**
      * バリデーションルール
      *
+     * title は重複可能。isbn・出版日は任意項目。
      * 編集画面（route に {book} が含まれる場合）では、自分自身の
-     * title・isbn は重複チェックの対象から除外する。
+     * isbn は重複チェックの対象から除外する。
      *
      * @return array<string, mixed>
      */
@@ -35,7 +36,7 @@ class BookRequest extends FormRequest
             ],
             'author' => ['required', 'string', 'max:255'],
             'isbn' => [
-                'nullable', 
+                'nullable',
                 'digits:13',
                 Rule::unique('books', 'isbn')->ignore($book),
             ],
