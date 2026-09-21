@@ -69,12 +69,17 @@ class GenreController extends Controller
     /**
      * ジャンルを削除する
      *
-     * book_genreテーブルの外部キー制約（genre_id側はcascadeOnDelete）により、
-     * このジャンルに紐づく書籍がある場合も、書籍自体は削除されず
-     * そのジャンルとの紐付けだけが自動的に削除される。
+     * 書籍に紐づいているジャンルは削除できない。
+     * book_genreテーブルの外部キー制約（genre_id側はrestrictOnDelete）でも
+     * DBレベルで削除が拒否されるが、ここで事前に判定して
+     * ユーザーにメッセージを表示する。
      */
     public function destroy(Genre $genre): RedirectResponse
     {
+        if ($genre->books()->exists()) {
+            return back()->with('error', 'このジャンルは書籍に紐づいているため削除できません。');
+        }
+
         $genre->delete();
 
         return back()->with('success', 'ジャンルを削除しました。');
