@@ -82,7 +82,7 @@ erDiagram
     }
     genres {
         bigint_unsigned id PK
-        varchar_20 name
+        varchar_20 name UK
         timestamp created_at
         timestamp updated_at
     }
@@ -136,6 +136,8 @@ erDiagram
         timestamp updated_at
     }
 ```
+
+※ 認証補助のテーブル（`password_reset_tokens`、`personal_access_tokens`、`failed_jobs`）は、他のテーブルとの関連がないため図から省略しています（定義はテーブル仕様書を参照）。
 
 ※ 上記は、テーブル仕様書とマイグレーションの内容に合わせて記載しています（型の括弧内の数字は文字数、たとえば `varchar_255` は `varchar(255)` を表します）。
 
