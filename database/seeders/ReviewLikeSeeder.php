@@ -17,7 +17,7 @@ class ReviewLikeSeeder extends Seeder
 
         Review::all()->each(function (Review $review) use ($userIds) {
             $candidateIds = $userIds
-                ->reject(fn ($id) => $id === $review->user_id)
+                ->reject(fn ($id) => (int) $id === (int) $review->user_id)
                 ->shuffle();
 
             $likerIds = $candidateIds->take(random_int(0, 3));
