@@ -42,13 +42,13 @@ Accept: application/json
 
 ```json
 {
-    "message": "Unauthenticated."
+    "message": "認証が必要です"
 }
 ```
 
 ```json
 {
-    "message": "This action is unauthorized."
+    "message": "この操作を行う権限がありません"
 }
 ```
 
@@ -99,10 +99,15 @@ Accept: application/json
 
 | 項目 | ルール | メッセージ |
 |---|---|---|
-| keyword | string, max:255 | キーワードは255文字以内で指定してください |
-| genre | integer, exists:genres,id | 指定されたジャンルは存在しません |
-| page | integer, min:1 | ページ番号は1以上の値で指定してください |
-| per_page | integer, min:1, max:100 | 取得件数は1以上100以下の値で指定してください |
+| keyword | string | キーワードは文字列で指定してください |
+| keyword | max:255 | キーワードは255文字以内で指定してください |
+| genre | integer | ジャンルIDは整数で指定してください |
+| genre | exists:genres,id | 指定されたジャンルは存在しません |
+| page | integer | ページ番号は整数で指定してください |
+| page | min:1 | ページ番号は1以上の値で指定してください |
+| per_page | integer | 取得件数は整数で指定してください |
+| per_page | min:1 | 取得件数は1以上の値で指定してください |
+| per_page | max:100 | 取得件数は100以下の値で指定してください |
 
 ### レスポンス（200 OK）
 
@@ -246,7 +251,7 @@ Accept: application/json
 | id | integer | ○ | レビューID | `5` |
 | user_name | string | ○ | 投稿者名 | `"山田太郎"` |
 | rating | integer | ○ | 評価（1〜5） | `4` |
-| comment | string \| null | - | コメント | `"面白かったです"` |
+| comment | string | ○ | コメント | `"面白かったです"` |
 | created_at | string（ISO8601） | ○ | 投稿日時 | `"2026-09-01T12:34:56+09:00"` |
 
 ### レスポンス例
@@ -417,7 +422,7 @@ Accept: application/json
 | URI | `/api/v1/books/{book}` |
 | 認証 | 必要（Sanctumトークン、かつ書籍の登録者本人のみ） |
 
-書籍の削除にあわせて、関連するジャンルの紐付け（book_genres）・レビュー（reviews）・お気に入り（favorites）・レビューへのいいね（review_likes）も削除される。
+書籍の削除にあわせて、関連するジャンルの紐付け（book_genre）・レビュー（reviews）・お気に入り（favorites）・レビューへのいいね（review_likes）も削除される。
 
 ### パスパラメータ
 

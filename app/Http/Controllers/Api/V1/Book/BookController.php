@@ -138,7 +138,7 @@ class BookController extends Controller
      * DELETE /api/v1/books/{book}
      *
      * Sanctum 認証必須。書籍の所有者本人のみ削除できる（BookPolicy::delete）。
-     * book_genres・reviews・favorites は books への外部キーに
+     * book_genre・reviews・favorites は books への外部キーに
      * cascadeOnDelete が設定されているため、$book->delete() だけで
      * 関連レコードもまとめて削除される
      * （reviews に紐づく review_likes も reviews 側の cascadeOnDelete でさらに連鎖して削除される）。

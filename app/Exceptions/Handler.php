@@ -2,9 +2,11 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
@@ -55,6 +57,22 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'message' => $this->notFoundMessages[$model] ?? '指定されたデータが見つかりません',
                 ], 404);
+            }
+        });
+
+        // 未認証（401）。JSON（API）リクエストには英語の既定メッセージではなく日本語で返す。
+        $this->renderable(function (AuthenticationException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => '認証が必要です'], 401);
+            }
+        });
+
+        // 認可エラー（403）。Policy などで拒否された JSON（API）リクエストに日本語で返す。
+        // Laravel は AuthorizationException を AccessDeniedHttpException に置き換えてから
+        // renderable を呼ぶため、ここでは AccessDeniedHttpException を受け取る。
+        $this->renderable(function (AccessDeniedHttpException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'この操作を行う権限がありません'], 403);
             }
         });
     }

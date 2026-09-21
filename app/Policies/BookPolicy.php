@@ -4,28 +4,11 @@ namespace App\Policies;
 
 use App\Models\Book;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class BookPolicy
 {
     /**
-     * Determine whether the user can view any models.
-     */
-    public function viewAny(User $user): bool
-    {
-        //
-    }
-
-    /**
-     * Determine whether the user can view the model.
-     */
-    public function view(User $user, Book $book): bool
-    {
-        //
-    }
-
-    /**
-     * Determine whether the user can create models.
+     * 書籍を登録できるか（ログインユーザーであれば誰でも可）
      */
     public function create(User $user): bool
     {
@@ -33,7 +16,7 @@ class BookPolicy
     }
 
     /**
-     * Determine whether the user can update the model.
+     * 書籍を更新できるか（登録者本人のみ）
      */
     public function update(User $user, Book $book): bool
     {
@@ -41,26 +24,10 @@ class BookPolicy
     }
 
     /**
-     * Determine whether the user can delete the model.
+     * 書籍を削除できるか（登録者本人のみ）
      */
     public function delete(User $user, Book $book): bool
     {
         return $user->id === $book->user_id;
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Book $book): bool
-    {
-        //
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Book $book): bool
-    {
-        //
     }
 }
