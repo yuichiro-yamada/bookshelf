@@ -69,6 +69,21 @@ class ReviewUpdateTest extends TestCase
         $response->assertSessionHasErrors(['comment' => 'コメントは255文字以内で入力してください']);
     }
 
+    public function test_comment_is_required(): void
+    {
+        $owner = User::factory()->create();
+        $book = Book::factory()->for(User::factory())->create();
+        $review = Review::factory()->for($book)->for($owner)->create(['comment' => '編集前コメント']);
+
+        $response = $this->actingAs($owner)->put(route('reviews.update', $review), [
+            'rating' => 4,
+            'comment' => '',
+        ]);
+
+        $response->assertSessionHasErrors(['comment' => 'コメントを入力してください']);
+        $this->assertDatabaseHas('reviews', ['id' => $review->id, 'comment' => '編集前コメント']);
+    }
+
     public function test_other_user_cannot_update_review(): void
     {
         $owner = User::factory()->create();
