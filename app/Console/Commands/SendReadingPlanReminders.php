@@ -31,7 +31,7 @@ class SendReadingPlanReminders extends Command
             ->get()
             ->each(fn ($plan) => $plan->user->notify(new ReadingPlanReminder($plan, 'final')));
 
-        // 期日3日後・期限超過 → 再エンゲージメント通知
+        // 期日3日後・期限切れ → 再エンゲージメント通知
         ReadingPlan::with(['book', 'user'])
             ->where('status', ReadingPlanStatus::Expired->value)
             ->whereDate('target_date', $today->copy()->subDays(3))

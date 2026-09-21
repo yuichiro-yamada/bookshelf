@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ReadingPlanStatus;
 use App\Models\Book;
 use App\Models\ReadingPlan;
 use App\Models\User;
@@ -11,14 +12,14 @@ class ReadingPlanPolicy
     /**
      * 指定した書籍の読書計画を新規作成できるか
      *
-     * 「進行中」（未完了）の計画がすでにある場合は作成できない。
-     * 完了済みの計画のみがある場合は、再度作成できる（再読対応）。
+     * 同じ書籍について「進行中」の計画がすでにある場合は作成できない。
+     * 「完了」「期限切れ」の計画のみがある場合は、再度作成できる。
      */
     public function create(User $user, Book $book): bool
     {
         return ! $book->readingPlans()
             ->where('user_id', $user->id)
-            ->whereNull('completed_at')
+            ->where('status', ReadingPlanStatus::InProgress->value)
             ->exists();
     }
 

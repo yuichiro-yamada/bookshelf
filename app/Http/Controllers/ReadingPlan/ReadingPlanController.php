@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ReadingPlanController extends Controller
@@ -22,9 +23,6 @@ class ReadingPlanController extends Controller
     {
         $currentStatus = $request->query('status');
         $statusFilter = ReadingPlanStatus::tryFrom((string) $currentStatus);
-
-        // 表示前に、期日を過ぎた「進行中」の計画を「期限超過」に更新しておく
-        ReadingPlan::markExpiredForUser(Auth::id());
 
         $query = ReadingPlan::with('book')
             ->where('user_id', Auth::id())
@@ -46,7 +44,7 @@ class ReadingPlanController extends Controller
     {
         // すでに「進行中」の計画がある書籍は選択肢から除外する
         $activeBookIds = ReadingPlan::where('user_id', Auth::id())
-            ->whereNull('completed_at')
+            ->where('status', ReadingPlanStatus::InProgress->value)
             ->pluck('book_id');
 
         $books = Book::whereNotIn('id', $activeBookIds)
@@ -84,8 +82,14 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('update', $readingPlan);
 
-        ReadingPlan::markExpiredForUser(Auth::id());
-        $readingPlan->refresh();
+        if ($readingPlan->status === ReadingPlanStatus::Completed) {
+            abort(403);
+        }
+
+        if ($readingPlan->status === ReadingPlanStatus::Expired) {
+            // 同じ書籍に別の「進行中」の計画がある場合は、進行中に戻せない（重複防止）
+            $this->authorize('create', [ReadingPlan::class, $readingPlan->book]);
+        }
 
         return view('reading-plans.edit', compact('readingPlan'));
     }
@@ -99,6 +103,11 @@ class ReadingPlanController extends Controller
 
         if ($readingPlan->status === ReadingPlanStatus::Completed) {
             abort(403);
+        }
+
+        if ($readingPlan->status === ReadingPlanStatus::Expired) {
+            // 同じ書籍に別の「進行中」の計画がある場合は、進行中に戻せない（重複防止）
+            $this->authorize('create', [ReadingPlan::class, $readingPlan->book]);
         }
 
         $validated = $request->validated();
@@ -119,6 +128,10 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('update', $readingPlan);
 
+        if ($readingPlan->status === ReadingPlanStatus::Completed) {
+            abort(403);
+        }
+
         $readingPlan->update([
             'completed_at' => Carbon::now(),
             'status' => ReadingPlanStatus::Completed,
@@ -134,7 +147,9 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('delete', $readingPlan);
 
-        $readingPlan->delete();
+        // 計画の削除と、ReadingPlan モデルの deleting イベントで行う関連通知の削除を
+        // 1つのトランザクションにまとめる（どちらかが失敗した場合は両方とも元に戻す）
+        DB::transaction(fn () => $readingPlan->delete());
 
         return redirect()->route('reading-plans.index')->with('success', '読書計画を削除しました。');
     }
