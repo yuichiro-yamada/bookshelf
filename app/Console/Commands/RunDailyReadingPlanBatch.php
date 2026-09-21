@@ -9,6 +9,11 @@ class RunDailyReadingPlanBatch extends Command
     protected $signature = 'reading-plans:daily';
     protected $description = '読書計画の日次バッチ（期限切れの更新 → 3日前・当日・3日後の通知）をまとめて実行する';
 
+    /**
+     * 期限切れの更新 → リマインダー通知の送信 の順に実行する
+     *
+     * @return int 両方のコマンドが成功した場合は SUCCESS、それ以外は FAILURE
+     */
     public function handle(): int
     {
         // 1. 期日を過ぎた「進行中」→「期限切れ」へ更新

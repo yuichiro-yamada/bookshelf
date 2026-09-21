@@ -82,15 +82,6 @@ class ReadingPlanController extends Controller
     {
         $this->authorize('update', $readingPlan);
 
-        if ($readingPlan->status === ReadingPlanStatus::Completed) {
-            abort(403);
-        }
-
-        if ($readingPlan->status === ReadingPlanStatus::Expired) {
-            // 同じ書籍に別の「進行中」の計画がある場合は、進行中に戻せない（重複防止）
-            $this->authorize('create', [ReadingPlan::class, $readingPlan->book]);
-        }
-
         return view('reading-plans.edit', compact('readingPlan'));
     }
 
@@ -100,15 +91,6 @@ class ReadingPlanController extends Controller
     public function update(ReadingPlanRequest $request, ReadingPlan $readingPlan): RedirectResponse
     {
         $this->authorize('update', $readingPlan);
-
-        if ($readingPlan->status === ReadingPlanStatus::Completed) {
-            abort(403);
-        }
-
-        if ($readingPlan->status === ReadingPlanStatus::Expired) {
-            // 同じ書籍に別の「進行中」の計画がある場合は、進行中に戻せない（重複防止）
-            $this->authorize('create', [ReadingPlan::class, $readingPlan->book]);
-        }
 
         $validated = $request->validated();
 
@@ -126,11 +108,7 @@ class ReadingPlanController extends Controller
      */
     public function complete(ReadingPlan $readingPlan): RedirectResponse
     {
-        $this->authorize('update', $readingPlan);
-
-        if ($readingPlan->status === ReadingPlanStatus::Completed) {
-            abort(403);
-        }
+        $this->authorize('complete', $readingPlan);
 
         $readingPlan->update([
             'completed_at' => Carbon::now(),

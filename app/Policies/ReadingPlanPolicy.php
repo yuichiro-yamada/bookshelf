@@ -24,11 +24,37 @@ class ReadingPlanPolicy
     }
 
     /**
-     * 読書計画を更新（読了操作を含む）できるか
+     * 読書計画を更新（期日の変更）できるか
+     *
+     * 計画の作成者本人のみ可能。ただし状態によって次のように制限する。
+     * - 完了: 変更不可
+     * - 期限切れ: 更新すると「進行中」に戻るため、同じ書籍に別の「進行中」の計画が
+     *   ある場合は不可（進行中の計画が重複しないようにする）
+     * - 進行中: 変更可
      */
     public function update(User $user, ReadingPlan $readingPlan): bool
     {
-        return $user->id === $readingPlan->user_id;
+        if ($user->id !== $readingPlan->user_id) {
+            return false;
+        }
+
+        return match ($readingPlan->status) {
+            ReadingPlanStatus::Completed => false,
+            ReadingPlanStatus::Expired => $this->create($user, $readingPlan->book),
+            ReadingPlanStatus::InProgress => true,
+        };
+    }
+
+    /**
+     * 読書計画を読了済みにできるか
+     *
+     * 計画の作成者本人のみ可能。すでに「完了」の計画は不可。
+     * 「期限切れ」の計画は、読了済みにすることができる。
+     */
+    public function complete(User $user, ReadingPlan $readingPlan): bool
+    {
+        return $user->id === $readingPlan->user_id
+            && $readingPlan->status !== ReadingPlanStatus::Completed;
     }
 
     /**

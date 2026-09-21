@@ -12,6 +12,9 @@ class ExpireReadingPlans extends Command
     protected $signature = 'reading-plans:expire';
     protected $description = '期日超過の読書計画のステータスを「期限切れ」に更新する';
 
+    /**
+     * 期日を過ぎた「進行中」の読書計画を「期限切れ」に更新する
+     */
     public function handle(): void
     {
         $today = Carbon::today();

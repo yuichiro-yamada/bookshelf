@@ -70,7 +70,7 @@ class BookController extends Controller
      */
     public function create(): View
     {
-        $genres = Genre::all(); 
+        $genres = Genre::all();
 
         return view('books.create', compact('genres'));
     }
@@ -80,7 +80,7 @@ class BookController extends Controller
      */
     public function searchIsbn(SearchIsbnRequest $request, string $isbn): \Illuminate\Http\JsonResponse
     {
-        $response = Http::get('https://www.googleapis.com/books/v1/volumes', [
+        $response = Http::get(config('services.google_books.url'), [
             'q' => 'isbn:' . $isbn,
             'key' => config('services.google_books.key'),
         ]);
@@ -144,7 +144,7 @@ class BookController extends Controller
     {
         $this->authorize('update', $book);
 
-        $genres = Genre::all(); 
+        $genres = Genre::all();
 
         return view('books.edit', compact('book', 'genres'));
     }

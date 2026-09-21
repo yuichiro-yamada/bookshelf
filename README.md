@@ -1,4 +1,6 @@
-# Bookshelf App（書籍管理アプリ）
+# Bookshelf 書籍レビュー・管理アプリ
+
+## 概要
 
 読んだ本・読みたい本を登録し、レビューや読書計画で管理できる Laravel 製の書籍管理アプリです。
 プログラミングスクール（コーチテック）の課題として開発しています。
@@ -20,13 +22,122 @@
 | 日次バッチ | 毎日20:00に、期限切れへの更新と読書計画のリマインダー通知を実行（後述） |
 | 公開API | 書籍の一覧・詳細取得（認証不要）、登録・更新・削除（Sanctumトークン認証） |
 
-## 技術スタック
+## 使用技術
 
-- PHP 8.1 以上 / Laravel 10
+- PHP 8.5 / Laravel 10
 - MySQL 8.4（開発）、SQLite in-memory（テスト）
 - Laravel Sanctum（API認証）
-- Blade / Tailwind CSS / Alpine.js / Vite
-- Laravel Sail（Docker 開発環境）
+- Blade / Tailwind CSS / @tailwindcss/forms / Alpine.js / Vite
+- Docker / Laravel Sail / phpMyAdmin（開発環境）
+
+## 作成者
+
+ユウイチロウ
+
+## 開発環境URL
+
+| 用途 | URL |
+|---|---|
+| アプリケーション | http://localhost |
+| phpMyAdmin | http://localhost:8080 |
+
+## ER図
+
+```mermaid
+erDiagram
+    users ||--o{ books : "登録する"
+    users ||--o{ reviews : "投稿する"
+    books ||--o{ reviews : "レビューされる"
+    users ||--o{ favorites : "登録する"
+    books ||--o{ favorites : "登録される"
+    users ||--o{ review_likes : "いいねする"
+    reviews ||--o{ review_likes : "いいねされる"
+    books ||--o{ book_genre : "属する"
+    genres ||--o{ book_genre : "含む"
+    users ||--o{ reading_plans : "立てる"
+    books ||--o{ reading_plans : "対象になる"
+    users ||--o{ notifications : "受け取る"
+
+    users {
+        bigint_unsigned id PK
+        varchar_20 name
+        varchar_255 email UK
+        timestamp email_verified_at "NULL可"
+        varchar_255 password
+        varchar_100 remember_token "NULL可"
+        timestamp created_at
+        timestamp updated_at
+    }
+    books {
+        bigint_unsigned id PK
+        varchar_255 title
+        varchar_255 author
+        varchar_13 isbn UK "NULL可"
+        date published_date "NULL可"
+        varchar_1000 description "NULL可"
+        varchar_255 image_url "NULL可"
+        bigint_unsigned user_id FK "登録者"
+        timestamp created_at
+        timestamp updated_at
+    }
+    genres {
+        bigint_unsigned id PK
+        varchar_20 name
+        timestamp created_at
+        timestamp updated_at
+    }
+    book_genre {
+        bigint_unsigned book_id PK, FK
+        bigint_unsigned genre_id PK, FK "削除時RESTRICT"
+        timestamp created_at
+        timestamp updated_at
+    }
+    reviews {
+        bigint_unsigned id PK
+        bigint_unsigned user_id FK "user_id+book_idでUNIQUE"
+        bigint_unsigned book_id FK
+        tinyint rating "1〜5"
+        varchar_255 comment
+        timestamp created_at
+        timestamp updated_at
+    }
+    favorites {
+        bigint_unsigned id PK
+        bigint_unsigned user_id FK "user_id+book_idでUNIQUE"
+        bigint_unsigned book_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+    review_likes {
+        bigint_unsigned id PK
+        bigint_unsigned user_id FK "user_id+review_idでUNIQUE"
+        bigint_unsigned review_id FK
+        timestamp created_at
+        timestamp updated_at
+    }
+    reading_plans {
+        bigint_unsigned id PK
+        bigint_unsigned book_id FK
+        bigint_unsigned user_id FK
+        date target_date
+        timestamp completed_at "NULL可"
+        enum status "in_progress/completed/expired"
+        timestamp created_at
+        timestamp updated_at
+    }
+    notifications {
+        uuid id PK
+        varchar_255 type
+        varchar_255 notifiable_type
+        bigint_unsigned notifiable_id "通知先のユーザーID"
+        text data
+        timestamp read_at "NULL可"
+        timestamp created_at
+        timestamp updated_at
+    }
+```
+
+※ 上記は、テーブル仕様書とマイグレーションの内容に合わせて記載しています（型の括弧内の数字は文字数、たとえば `varchar_255` は `varchar(255)` を表します）。
 
 ## 環境構築
 
@@ -65,7 +176,7 @@ GOOGLE_BOOKS_API_KEY=
 ./vendor/bin/sail npm run dev
 ```
 
-起動後、http://localhost にアクセスします。phpMyAdmin は http://localhost:8080 です。
+起動後、http://localhost にアクセスします（phpMyAdmin は http://localhost:8080）。
 
 ### 初期データ
 
@@ -112,13 +223,13 @@ Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必�
 
 書籍の一覧・詳細は認証不要、登録・更新・削除は Sanctum のトークン認証（Bearer Token）が必要です。
 
-| メソッド | URI | 認証 |
-|---|---|---|
-| GET | `/api/v1/books` | 不要 |
-| GET | `/api/v1/books/{book}` | 不要 |
-| POST | `/api/v1/books` | 必要 |
-| PUT | `/api/v1/books/{book}` | 必要 |
-| DELETE | `/api/v1/books/{book}` | 必要 |
+| メソッド | パス | 概要 | 認証 |
+|---|---|---|---|
+| GET | `/api/v1/books` | 書籍一覧の取得（キーワード検索・ジャンル絞り込み・ページネーション） | 不要 |
+| GET | `/api/v1/books/{book}` | 書籍詳細の取得（ジャンル・レビュー一覧を含む） | 不要 |
+| POST | `/api/v1/books` | 書籍の新規登録 | 必要 |
+| PUT | `/api/v1/books/{book}` | 書籍の更新（登録者本人のみ） | 必要 |
+| DELETE | `/api/v1/books/{book}` | 書籍の削除（登録者本人のみ） | 必要 |
 
 トークン発行用のエンドポイントは用意していません。動作確認用のトークンは tinker で発行します。
 
@@ -144,7 +255,7 @@ Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必�
 |---|---|
 | `テストケース一覧.xlsx` | テストケース一覧（大項目・項目・テスト手順・期待挙動・テストファイル） |
 | `テーブル仕様書.xlsx` | 各テーブルのカラム定義・制約・備考 |
-| `erd.png` / `erd.drawio` | ER図 |
+| `erd.png` / `erd.drawio` | ER図（旧版。最新のER図は README 内の Mermaid 図を参照） |
 | [docs/api-spec-books.md](docs/api-spec-books.md) | 書籍API仕様書 |
 | [docs/validation-spec.md](docs/validation-spec.md) | バリデーション仕様書（FormRequestごとのルール・エラーメッセージ・利用箇所） |
 
