@@ -11,11 +11,13 @@ FormRequestクラスごとに、「実際にどのエンドポイント・どの
 
 ---
 
-## RegisterRequest.php
+## CreateNewUser.php
+
+会員登録の入力チェック・ユーザー作成は、`Laravel\Fortify\Contracts\CreatesNewUsers`を実装したアクションクラス`App\Actions\Fortify\CreateNewUser`が担当します。`app/Providers/FortifyServiceProvider.php`の`boot()`内で`Fortify::createUsersUsing(CreateNewUser::class)`として登録されており、`create(array $input)`メソッドの中で`Validator::make()`により直接バリデーションを行っています。
 
 | エンドポイント | 利用箇所 |
 |---|---|
-| POST /register | `AuthController@register` |
+| POST /register | `Laravel\Fortify\Http\Controllers\RegisteredUserController@store`<br>（内部で`App\Actions\Fortify\CreateNewUser@create`を呼び出す） |
 
 | フォーム | バリデーションルール | エラーメッセージ |
 |---|---|---|
@@ -28,17 +30,19 @@ FormRequestクラスごとに、「実際にどのエンドポイント・どの
 
 ## LoginRequest.php
 
-`rules()`による形式チェックと、`authenticate()`による認証情報チェックの2段階になっています。`authenticate()`はLaravelが自動で呼ぶメソッドではなく、`AuthController@login`の中で`$request->authenticate()`として明示的に呼び出されている点に注意してください。
+`rules()`・`messages()`による形式チェックは`App\Http\Requests\Auth\LoginRequest`（Fortifyの`Laravel\Fortify\Http\Requests\LoginRequest`を継承）が担当します。`app/Providers/FortifyServiceProvider.php`の`register()`内で`$this->app->singleton(\Laravel\Fortify\Http\Requests\LoginRequest::class, \App\Http\Requests\Auth\LoginRequest::class)`として紐づけることで有効になっています。
+
+認証情報チェック（メールアドレス・パスワードの組み合わせが正しいか）は、`FortifyServiceProvider::boot()`内の`Fortify::authenticateUsing()`に渡すクロージャで行っています。
 
 | エンドポイント | 利用箇所 |
 |---|---|
-| POST /login | `AuthController@login`<br>（`rules()`の形式チェック通過後、同メソッド内で`authenticate()`を呼び出して認証情報を確認） |
+| POST /login | `Laravel\Fortify\Http\Controllers\AuthenticatedSessionController@store`<br>（形式チェック: `LoginRequest::rules()`／認証情報チェック: `FortifyServiceProvider::authenticateUsing()`のクロージャ） |
 
 | フォーム | バリデーションルール | エラーメッセージ |
 |---|---|---|
 | メールアドレス | 必須<br>メール形式 | メールアドレスを入力してください<br>メールアドレスはメール形式で入力してください |
-| パスワード（形式チェック／`rules()`） | 必須 | パスワードを入力してください |
-| パスワード（認証チェック／`authenticate()`） | 登録されている会員情報と一致すること | 会員情報が登録されていません |
+| パスワード（形式チェック／`LoginRequest::rules()`） | 必須 | パスワードを入力してください |
+| パスワード（認証チェック／`authenticateUsing()`） | 登録されている会員情報と一致すること | 会員情報が登録されていません |
 
 ---
 

@@ -75,8 +75,7 @@ class BookController extends Controller
      */
     public function store(BookRequest $request): JsonResponse
     {
-        $this->authorize('create', Book::class);
-
+        // 認可（BookPolicy::create）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book = Book::create([
@@ -110,8 +109,7 @@ class BookController extends Controller
      */
     public function update(BookRequest $request, Book $book): BookResource
     {
-        $this->authorize('update', $book);
-
+        // 認可（BookPolicy::update）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book->update([

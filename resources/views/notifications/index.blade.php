@@ -103,7 +103,6 @@
                                         <div class="ml-4 flex-shrink-0">
                                             <form action="{{ route('notifications.read', $notification->id) }}" method="POST" novalidate>
                                                 @csrf
-                                                @method('PATCH')
                                                 <button type="submit" class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
                                                     既読にする
                                                 </button>

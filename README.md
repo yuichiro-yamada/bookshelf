@@ -26,13 +26,10 @@
 
 - PHP 8.5 / Laravel 10
 - MySQL 8.4（開発）、SQLite in-memory（テスト）
+- Laravel Fortify（会員登録・ログイン認証）
 - Laravel Sanctum（API認証）
 - Blade / Tailwind CSS / @tailwindcss/forms / Alpine.js / Vite
 - Docker / Laravel Sail / phpMyAdmin（開発環境）
-
-## 作成者
-
-ユウイチロウ
 
 ## 開発環境URL
 
@@ -42,6 +39,8 @@
 | phpMyAdmin | http://localhost:8080 |
 
 ## ER図
+
+<img src="./erd.png" alt="書籍レビュー・管理アプリER図" width="1000">
 
 ```mermaid
 erDiagram

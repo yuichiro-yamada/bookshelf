@@ -15,7 +15,7 @@ class FavoriteController extends Controller
      */
     public function index(): View
     {
-        $books = Auth::user()->favoriteBooks()->paginate(9);
+        $books = Auth::user()->favoriteBooks()->paginate(10);
 
         return view('favorites.index', compact('books'));
     }

@@ -2,20 +2,21 @@
 
 namespace App\Http\Requests\Auth;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
+use Laravel\Fortify\Http\Requests\LoginRequest as FortifyLoginRequest;
 
-class LoginRequest extends FormRequest
+/**
+ * Fortifyのログイン処理で使われるFormRequest。
+ * 入力形式チェック（rules）とエラーメッセージ（messages）を定義する。
+ *
+ * FortifyServiceProvider の register() 内で
+ * $this->app->singleton(\Laravel\Fortify\Http\Requests\LoginRequest::class, self::class)
+ * として紐づけることで、Fortify内部のLoginRequestをこのクラスに差し替えている。
+ *
+ * 実際の認証（email・passwordの組み合わせが正しいか）は
+ * FortifyServiceProvider の Fortify::authenticateUsing() 側で行う。
+ */
+class LoginRequest extends FortifyLoginRequest
 {
-    /**
-     * このリクエストを実行してよいか
-     */
-    public function authorize(): bool
-    {
-        return true;
-    }
-
     /**
      * バリデーションルール（入力の形式チェックのみ）
      *
@@ -41,18 +42,5 @@ class LoginRequest extends FormRequest
             'email.email' => 'メールアドレスはメール形式で入力してください',
             'password.required' => 'パスワードを入力してください',
         ];
-    }
-
-    /**
-     * 入力形式のチェックを通過した後、実際にログインできる会員情報かどうかを確認する。
-     * 一致しない場合はpasswordフィールドにエラーメッセージを付与して例外を投げる。
-     */
-    public function authenticate(): void
-    {
-        if (! Auth::attempt($this->only('email', 'password'))) {
-            throw ValidationException::withMessages([
-                'password' => '会員情報が登録されていません',
-            ]);
-        }
     }
 }

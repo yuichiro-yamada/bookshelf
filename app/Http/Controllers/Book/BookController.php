@@ -44,7 +44,7 @@ class BookController extends Controller
             default => $query->latest()->latest('id'),
         };
 
-        $books = $query->paginate(9)->withQueryString();
+        $books = $query->paginate(10)->withQueryString();
 
         $genres = Genre::orderBy('name')->get();
 
@@ -118,8 +118,7 @@ class BookController extends Controller
      */
     public function store(BookRequest $request): RedirectResponse
     {
-        $this->authorize('create', Book::class);
-
+        // 認可（BookPolicy::create）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book = Book::create([
@@ -154,8 +153,7 @@ class BookController extends Controller
      */
     public function update(BookRequest $request, Book $book): RedirectResponse
     {
-        $this->authorize('update', $book);
-
+        // 認可（BookPolicy::update）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book->update([
