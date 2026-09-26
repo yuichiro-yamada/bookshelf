@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Notification;
 class SendReadingPlanReminders extends Command
 {
     protected $signature = 'reading-plans:remind';
+
     protected $description = '読書計画の期日に応じたリマインダー通知を送信する';
 
     /**

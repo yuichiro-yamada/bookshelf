@@ -22,7 +22,7 @@ class BookAuthorizationTest extends TestCase
     {
         parent::setUp();
 
-        $this->policy = new BookPolicy();
+        $this->policy = new BookPolicy;
     }
 
     /**

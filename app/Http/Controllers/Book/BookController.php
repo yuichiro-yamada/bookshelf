@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers\Book;
 
-use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Book\BookRequest;
 use App\Http\Requests\Book\SearchIsbnRequest;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Book;
 use App\Models\Genre;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\View\View;
 
 class BookController extends Controller
 {
@@ -58,7 +59,7 @@ class BookController extends Controller
      */
     public function show(Book $book): View
     {
-        $book->load(['genres', 'user', 'reviews.user', 'reviews.likedByUsers']);
+        $book->load(['genres', 'reviews.user', 'reviews.likedByUsers']);
 
         $hasReviewed = Auth::check() && $book->reviews->contains('user_id', Auth::id());
 
@@ -78,10 +79,10 @@ class BookController extends Controller
     /**
      * ISBNからGoogle Books APIで書籍情報を取得する（Ajax用）
      */
-    public function searchIsbn(SearchIsbnRequest $request, string $isbn): \Illuminate\Http\JsonResponse
+    public function searchIsbn(SearchIsbnRequest $request, string $isbn): JsonResponse
     {
         $response = Http::get(config('services.google_books.url'), [
-            'q' => 'isbn:' . $isbn,
+            'q' => 'isbn:'.$isbn,
             'key' => config('services.google_books.key'),
         ]);
 
@@ -93,12 +94,13 @@ class BookController extends Controller
 
         $matched = collect($items)->first(function ($item) use ($isbn) {
             $identifiers = $item['volumeInfo']['industryIdentifiers'] ?? [];
+
             return collect($identifiers)->contains(
                 fn ($id) => ($id['identifier'] ?? null) === $isbn
             );
         });
 
-        if (!$matched) {
+        if (! $matched) {
             return response()->json(['error' => '該当する書籍が見つかりませんでした。'], 404);
         }
 
@@ -181,5 +183,4 @@ class BookController extends Controller
 
         return redirect()->route('books.index')->with('success', '書籍を削除しました。');
     }
-
 }

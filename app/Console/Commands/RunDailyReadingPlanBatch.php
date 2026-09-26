@@ -7,6 +7,7 @@ use Illuminate\Console\Command;
 class RunDailyReadingPlanBatch extends Command
 {
     protected $signature = 'reading-plans:daily';
+
     protected $description = '読書計画の日次バッチ（期限切れの更新 → 3日前・当日・3日後の通知）をまとめて実行する';
 
     /**

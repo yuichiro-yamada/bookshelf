@@ -61,7 +61,7 @@ class BookRequest extends FormRequest
             ],
             'genres.*' => [
                 'integer',
-                'exists:genres,id'
+                'exists:genres,id',
             ],
         ];
     }

@@ -4,7 +4,6 @@ namespace Tests\Feature\ReminderBatch;
 
 use App\Models\Book;
 use App\Models\ReadingPlan;
-use App\Models\User;
 use App\Notifications\ReadingPlanReminder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;

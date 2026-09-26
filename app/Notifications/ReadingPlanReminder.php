@@ -19,8 +19,7 @@ class ReadingPlanReminder extends Notification
     public function __construct(
         protected ReadingPlan $readingPlan,
         protected string $type
-    ) {
-    }
+    ) {}
 
     /**
      * 通知の配信チャンネルを返す（データベースのみ）

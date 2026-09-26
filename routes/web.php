@@ -1,14 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Book\BookController;
-use App\Http\Controllers\Genre\GenreController;
 use App\Http\Controllers\Favorite\FavoriteController;
-use App\Http\Controllers\Review\ReviewController;
-use App\Http\Controllers\Ranking\RankingController;
-use App\Http\Controllers\Report\ReportController;
-use App\Http\Controllers\ReadingPlan\ReadingPlanController;
+use App\Http\Controllers\Genre\GenreController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Ranking\RankingController;
+use App\Http\Controllers\ReadingPlan\ReadingPlanController;
+use App\Http\Controllers\Report\ReportController;
+use App\Http\Controllers\Review\ReviewController;
+use Illuminate\Support\Facades\Route;
 
 // トップページ
 Route::get('/', [BookController::class, 'index'])->name('books.index');
@@ -19,7 +19,7 @@ Route::get('/books/create', [BookController::class, 'create'])->name('books.crea
 // ISBNから書籍情報を取得（Ajax用）
 Route::get('/books/isbn/{isbn}', [BookController::class, 'searchIsbn'])->name('books.isbn')->middleware('auth');
 
-// 書籍の保存処理（通常、次に必要になります）
+// 書籍の登録処理（ログイン必須）
 Route::post('/books', [BookController::class, 'store'])->name('books.store')->middleware('auth');
 
 // 書籍詳細画面の表示

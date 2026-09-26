@@ -2,9 +2,9 @@
 
 namespace App\Policies;
 
+use App\Models\Book;
 use App\Models\Review;
 use App\Models\User;
-use App\Models\Book;
 
 class ReviewPolicy
 {
