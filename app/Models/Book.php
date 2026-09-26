@@ -70,15 +70,6 @@ class Book extends Model
     }
 
     /**
-     * この書籍をお気に入り登録しているユーザー
-     */
-    public function favoritedByUsers(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'favorites')
-            ->withTimestamps();
-    }
-
-    /**
      * この書籍に紐づく読書計画
      */
     public function readingPlans(): HasMany

@@ -27,7 +27,7 @@ class BookController extends Controller
 
         $keyword = $validated['keyword'] ?? '';
         $genreId = $validated['genre'] ?? null;
-        $perPage = $validated['per_page'] ?? 9;
+        $perPage = $validated['per_page'] ?? 10;
 
         // キーワード検索・ジャンル絞り込みは、画面用コントローラー（Book\BookController）
         // と共通のロジックを Book モデルのローカルスコープ（searchKeyword・filterByGenre）に
@@ -71,22 +71,21 @@ class BookController extends Controller
      * POST /api/v1/books
      *
      * Sanctum 認証必須。登録者（user_id）はリクエストボディではなく
-     * 認証済みユーザー（Auth::id()）から設定する。
+     * 認証済みユーザーの books() リレーション経由で設定する。
      */
     public function store(BookRequest $request): JsonResponse
     {
-        $this->authorize('create', Book::class);
-
+        // 認可（BookPolicy::create）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
-        $book = Book::create([
+        // user_id は User::books() リレーション経由で、ログインユーザーのIDが自動的に設定される
+        $book = Auth::user()->books()->create([
             'title' => $validated['title'],
             'author' => $validated['author'],
             'isbn' => $validated['isbn'] ?? null,
             'published_date' => $validated['published_date'] ?? null,
             'description' => $validated['description'] ?? null,
             'image_url' => $validated['image_url'] ?? null,
-            'user_id' => Auth::id(),
         ]);
 
         $book->genres()->sync($validated['genres']);
@@ -110,8 +109,7 @@ class BookController extends Controller
      */
     public function update(BookRequest $request, Book $book): BookResource
     {
-        $this->authorize('update', $book);
-
+        // 認可（BookPolicy::update）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book->update([
@@ -138,7 +136,7 @@ class BookController extends Controller
      * DELETE /api/v1/books/{book}
      *
      * Sanctum 認証必須。書籍の所有者本人のみ削除できる（BookPolicy::delete）。
-     * book_genres・reviews・favorites は books への外部キーに
+     * book_genre・reviews・favorites は books への外部キーに
      * cascadeOnDelete が設定されているため、$book->delete() だけで
      * 関連レコードもまとめて削除される
      * （reviews に紐づく review_likes も reviews 側の cascadeOnDelete でさらに連鎖して削除される）。

@@ -1,15 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Book\BookController;
-use App\Http\Controllers\Genre\GenreController;
-use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Favorite\FavoriteController;
-use App\Http\Controllers\Review\ReviewController;
-use App\Http\Controllers\Ranking\RankingController;
-use App\Http\Controllers\Report\ReportController;
-use App\Http\Controllers\ReadingPlan\ReadingPlanController;
+use App\Http\Controllers\Genre\GenreController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Ranking\RankingController;
+use App\Http\Controllers\ReadingPlan\ReadingPlanController;
+use App\Http\Controllers\Report\ReportController;
+use App\Http\Controllers\Review\ReviewController;
+use Illuminate\Support\Facades\Route;
 
 // トップページ
 Route::get('/', [BookController::class, 'index'])->name('books.index');
@@ -20,7 +19,7 @@ Route::get('/books/create', [BookController::class, 'create'])->name('books.crea
 // ISBNから書籍情報を取得（Ajax用）
 Route::get('/books/isbn/{isbn}', [BookController::class, 'searchIsbn'])->name('books.isbn')->middleware('auth');
 
-// 書籍の保存処理（通常、次に必要になります）
+// 書籍の登録処理（ログイン必須）
 Route::post('/books', [BookController::class, 'store'])->name('books.store')->middleware('auth');
 
 // 書籍詳細画面の表示
@@ -34,23 +33,12 @@ Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index
 Route::get('/genres/create', [GenreController::class, 'create'])->name('genres.create')->middleware('auth');
 Route::post('/genres', [GenreController::class, 'store'])->name('genres.store')->middleware('auth');
 
-// ジャンル一覧・詳細（未ログインでも閲覧可能）
-Route::get('/genres', [GenreController::class, 'index'])->name('genres.index');
-Route::get('/genres/{genre}', [GenreController::class, 'show'])->name('genres.show');
-
-// 未ログインのユーザーのみアクセス可能（会員登録・ログイン）
-Route::middleware('guest')->group(function () {
-    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
-
-    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
-});
+// ジャンル一覧・詳細（ログイン必須）
+Route::get('/genres', [GenreController::class, 'index'])->name('genres.index')->middleware('auth');
+Route::get('/genres/{genre}', [GenreController::class, 'show'])->name('genres.show')->middleware('auth');
 
 // ログイン済みのユーザーのみアクセス可能
 Route::middleware('auth')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-
     // マイ読書レポート
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
@@ -88,6 +76,6 @@ Route::middleware('auth')->group(function () {
 
     // 通知機能
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::patch('/notifications/{id}', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
 
 });

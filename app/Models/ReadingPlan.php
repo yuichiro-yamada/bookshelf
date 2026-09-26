@@ -7,7 +7,6 @@ use App\Notifications\ReadingPlanReminder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 class ReadingPlan extends Model
 {
@@ -84,20 +83,5 @@ class ReadingPlan extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * 期日を過ぎている「進行中」の計画を、まとめて「期限超過」に更新する
-     *
-     * status を実カラムとして持つ設計にしたため、target_date が過ぎても
-     * 自動では値が変わらない。一覧・編集画面を表示する直前にこのメソッドを
-     * 呼び出し、表示前に整合性を取っている（判定基準はここに集約する）。
-     */
-    public static function markExpiredForUser(int $userId): void
-    {
-        static::where('user_id', $userId)
-            ->where('status', ReadingPlanStatus::InProgress->value)
-            ->whereDate('target_date', '<', Carbon::today())
-            ->update(['status' => ReadingPlanStatus::Expired->value]);
     }
 }

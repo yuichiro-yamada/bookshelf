@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Book;
 
+use App\Models\Book;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,17 +10,29 @@ class BookRequest extends FormRequest
 {
     /**
      * このリクエストを実行してよいか
+     *
+     * 入力チェック（rules）より先に権限を判定するため、ここで BookPolicy を呼び出す。
+     * 権限がない場合は、入力内容にかかわらず 403 になる。
+     * - 更新（route に {book} が含まれる場合）: 書籍の登録者本人のみ（BookPolicy::update）
+     * - 新規登録: ログインユーザーであれば可（BookPolicy::create）
      */
     public function authorize(): bool
     {
-        return true;
+        $book = $this->route('book');
+
+        if ($book instanceof Book) {
+            return $this->user()?->can('update', $book) ?? false;
+        }
+
+        return $this->user()?->can('create', Book::class) ?? false;
     }
 
     /**
      * バリデーションルール
      *
+     * title は重複可能。isbn・出版日は任意項目。
      * 編集画面（route に {book} が含まれる場合）では、自分自身の
-     * title・isbn は重複チェックの対象から除外する。
+     * isbn は重複チェックの対象から除外する。
      *
      * @return array<string, mixed>
      */
@@ -35,7 +48,7 @@ class BookRequest extends FormRequest
             ],
             'author' => ['required', 'string', 'max:255'],
             'isbn' => [
-                'nullable', 
+                'nullable',
                 'digits:13',
                 Rule::unique('books', 'isbn')->ignore($book),
             ],
@@ -48,7 +61,7 @@ class BookRequest extends FormRequest
             ],
             'genres.*' => [
                 'integer',
-                'exists:genres,id'
+                'exists:genres,id',
             ],
         ];
     }

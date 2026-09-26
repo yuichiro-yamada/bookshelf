@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Genre\GenreRequest;
 use App\Models\Genre;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class GenreController extends Controller
@@ -40,12 +41,28 @@ class GenreController extends Controller
 
     /**
      * ジャンルに紐づく書籍一覧を表示する
+     *
+     * ジャンル詳細へは「ジャンル一覧」と「マイ読書レポート」の2画面から遷移できるため、
+     * 遷移元をクエリパラメータ from で受け取り、「戻る」リンクの遷移先・文言を切り替える
+     * （from=reports の場合はマイ読書レポート、それ以外はジャンル一覧へ戻る）。
      */
-    public function show(Genre $genre): View
+    public function show(Request $request, Genre $genre): View
     {
-        $books = $genre->books()->with('genres')->paginate(9);
+        // 書籍一覧と同じく登録日時の新しい順（同じ日時の場合は ID の新しい順）に並べる。
+        // 中間テーブル book_genre にも created_at があるため、books テーブルのカラムと明示する。
+        // ページ送りしても from が引き継がれるよう withQueryString() を付ける
+        $books = $genre->books()
+            ->with('genres')
+            ->orderByDesc('books.created_at')
+            ->orderByDesc('books.id')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('genres.show', compact('genre', 'books'));
+        [$backUrl, $backLabel] = $request->query('from') === 'reports'
+            ? [route('reports.index'), 'マイ読書レポートに戻る']
+            : [route('genres.index'), 'ジャンル一覧に戻る'];
+
+        return view('genres.show', compact('genre', 'books', 'backUrl', 'backLabel'));
     }
 
     /**
@@ -69,12 +86,17 @@ class GenreController extends Controller
     /**
      * ジャンルを削除する
      *
-     * book_genreテーブルの外部キー制約（genre_id側はcascadeOnDelete）により、
-     * このジャンルに紐づく書籍がある場合も、書籍自体は削除されず
-     * そのジャンルとの紐付けだけが自動的に削除される。
+     * 書籍に紐づいているジャンルは削除できない。
+     * book_genreテーブルの外部キー制約（genre_id側はrestrictOnDelete）でも
+     * DBレベルで削除が拒否されるが、ここで事前に判定して
+     * ユーザーにメッセージを表示する。
      */
     public function destroy(Genre $genre): RedirectResponse
     {
+        if ($genre->books()->exists()) {
+            return back()->with('error', 'このジャンルは書籍に紐づいているため削除できません。');
+        }
+
         $genre->delete();
 
         return back()->with('success', 'ジャンルを削除しました。');

@@ -1,4 +1,4 @@
-# 書籍API仕様書（サンプル）
+# 書籍API仕様書
 
 対象: Bookshelfアプリ 公開API `/api/v1/books`
 
@@ -17,12 +17,32 @@ http://localhost/api/v1
 - Laravel Sanctumによるトークン認証（Bearer Token）
 - 書き込み系（登録・更新・削除）のみ認証が必要（一覧・詳細取得は認証不要）
 - トークンを発行するAPIは用意していない。開発・動作確認用には、`sail artisan tinker` で `User::find(1)->createToken('test')->plainTextToken` を実行して取得する
-- 認証が必要なエンドポイントには、リクエストヘッダーに以下を付与する
+- 認証が必要なエンドポイントには、リクエストヘッダーに `Authorization: Bearer {トークン}` を付与する
+
+### リクエストヘッダー
+
+すべてのエンドポイント（認証不要の一覧・詳細取得を含む）で、`Accept: application/json` を付与する。
+
+| ヘッダー | 値 | 対象 |
+|---|---|---|
+| Accept | `application/json` | 全エンドポイント |
+| Authorization | `Bearer {トークン}` | 認証が必要なエンドポイント（登録・更新・削除） |
 
 ```
-Authorization: Bearer {トークン}
 Accept: application/json
+Authorization: Bearer {トークン}
 ```
+
+エラー時のレスポンスは、`Accept: application/json` の有無によって次のように変わる（正常時は、ヘッダーの有無にかかわらずJSONを返す）。本APIは `Accept: application/json` の付与を前提としており、下表「なしの場合」は想定外の利用方法となる。
+
+| ケース | `Accept: application/json` ありの場合 | なしの場合 |
+|---|---|---|
+| 未認証 | 401（JSON） | 302（画面のログインページへリダイレクト） |
+| 権限なし | 403（JSON） | 403（HTMLのエラーページ） |
+| 存在しないID | 404（JSON） | 404（HTMLのエラーページ） |
+| バリデーションエラー | 422（JSON） | 302（直前のページへリダイレクト） |
+
+※ エラー時にJSONを返す判定は、`$request->expectsJson()`（`app/Exceptions/Handler.php`・`app/Http/Middleware/Authenticate.php`・FormRequest）で行っている。
 
 ### 共通HTTPステータスコード
 
@@ -42,13 +62,13 @@ Accept: application/json
 
 ```json
 {
-    "message": "Unauthenticated."
+    "message": "認証が必要です"
 }
 ```
 
 ```json
 {
-    "message": "This action is unauthorized."
+    "message": "この操作を行う権限がありません"
 }
 ```
 
@@ -84,7 +104,7 @@ Accept: application/json
 | URI | `/api/v1/books` |
 | 認証 | 不要 |
 
-キーワード検索（タイトル・著者名の部分一致）、ジャンルによる絞り込み、ページネーションに対応する。各書籍にジャンル情報・平均評価・レビュー件数を含める。
+キーワード検索（タイトル・著者名の部分一致）、ジャンルによる絞り込み、ページネーションに対応する。各書籍にジャンル情報・平均評価・レビュー件数を含める。並び順は登録日時の新しい順（同一秒の場合は ID の新しい順）。
 
 ### リクエストパラメータ（クエリパラメータ）
 
@@ -93,16 +113,21 @@ Accept: application/json
 | keyword | string | - | タイトル・著者名を部分一致で検索する | `"夏目"` |
 | genre | integer | - | ジャンルIDで絞り込む（存在するジャンルIDのみ） | `2` |
 | page | integer | - | ページ番号（デフォルト: 1） | `2` |
-| per_page | integer | - | 1ページあたりの件数（デフォルト: 9、最大: 100） | `20` |
+| per_page | integer | - | 1ページあたりの件数（デフォルト: 10、最大: 100） | `20` |
 
 ### バリデーションエラーメッセージ
 
 | 項目 | ルール | メッセージ |
 |---|---|---|
-| keyword | string, max:255 | キーワードは255文字以内で指定してください |
-| genre | integer, exists:genres,id | 指定されたジャンルは存在しません |
-| page | integer, min:1 | ページ番号は1以上の値で指定してください |
-| per_page | integer, min:1, max:100 | 取得件数は1以上100以下の値で指定してください |
+| keyword | string | キーワードは文字列で指定してください |
+| keyword | max:255 | キーワードは255文字以内で指定してください |
+| genre | integer | ジャンルIDは整数で指定してください |
+| genre | exists:genres,id | 指定されたジャンルは存在しません |
+| page | integer | ページ番号は整数で指定してください |
+| page | min:1 | ページ番号は1以上の値で指定してください |
+| per_page | integer | 取得件数は整数で指定してください |
+| per_page | min:1 | 取得件数は1以上の値で指定してください |
+| per_page | max:100 | 取得件数は100以下の値で指定してください |
 
 ### レスポンス（200 OK）
 
@@ -157,7 +182,7 @@ Accept: application/json
 | last_page | integer | ○ | 最終ページ番号 | `5` |
 | links | array | ○ | ページ番号ごとのリンク情報の配列 | `[{"url":null,"label":"&laquo; Previous","active":false}, ...]` |
 | path | string | ○ | ページネーションのベースURL | `"http://localhost/api/v1/books"` |
-| per_page | integer | ○ | 1ページあたりの件数 | `9` |
+| per_page | integer | ○ | 1ページあたりの件数 | `10` |
 | to | integer \| null | - | このページの最後のデータの通し番号 | `9` |
 | total | integer | ○ | 全件数 | `42` |
 
@@ -196,8 +221,8 @@ Accept: application/json
             { "url": null, "label": "&laquo; Previous", "active": false }
         ],
         "path": "http://localhost/api/v1/books",
-        "per_page": 9,
-        "to": 9,
+        "per_page": 10,
+        "to": 10,
         "total": 42
     }
 }
@@ -246,7 +271,7 @@ Accept: application/json
 | id | integer | ○ | レビューID | `5` |
 | user_name | string | ○ | 投稿者名 | `"山田太郎"` |
 | rating | integer | ○ | 評価（1〜5） | `4` |
-| comment | string \| null | - | コメント | `"面白かったです"` |
+| comment | string | ○ | コメント | `"面白かったです"` |
 | created_at | string（ISO8601） | ○ | 投稿日時 | `"2026-09-01T12:34:56+09:00"` |
 
 ### レスポンス例
@@ -392,6 +417,8 @@ Accept: application/json
 
 「3. 書籍を新規登録する」と同じ項目・バリデーションルール（`isbn` の重複チェックは自分自身を除外して判定する）。
 
+権限の判定は入力チェックより先に行われる。自分が登録していない書籍に対しては、入力内容が不正でも 422 ではなく 403 が返る。
+
 ### レスポンス（200 OK）
 
 レスポンス構造は「2. 書籍詳細を取得する」と同じ（更新後の内容、既存のレビューも含む）。
@@ -417,7 +444,7 @@ Accept: application/json
 | URI | `/api/v1/books/{book}` |
 | 認証 | 必要（Sanctumトークン、かつ書籍の登録者本人のみ） |
 
-書籍の削除にあわせて、関連するジャンルの紐付け（book_genres）・レビュー（reviews）・お気に入り（favorites）・レビューへのいいね（review_likes）も削除される。
+書籍の削除にあわせて、関連するジャンルの紐付け（book_genre）・レビュー（reviews）・お気に入り（favorites）・レビューへのいいね（review_likes）も削除される。
 
 ### パスパラメータ
 

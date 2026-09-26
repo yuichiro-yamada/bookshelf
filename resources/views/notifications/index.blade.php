@@ -95,7 +95,7 @@
                                             <p class="text-sm font-semibold text-gray-900 truncate">{{ $notification->data['title'] ?? '通知' }}</p>
                                         </div>
                                         <p class="mt-1 text-sm text-gray-600">{{ $notification->data['body'] ?? '' }}</p>
-                                        <p class="mt-2 text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                        <p class="mt-2 text-xs text-gray-400">{{ $notification->created_at->locale('ja')->diffForHumans() }}</p>
                                     </div>
 
                                     {{-- Action --}}
@@ -103,7 +103,6 @@
                                         <div class="ml-4 flex-shrink-0">
                                             <form action="{{ route('notifications.read', $notification->id) }}" method="POST" novalidate>
                                                 @csrf
-                                                @method('PATCH')
                                                 <button type="submit" class="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
                                                     既読にする
                                                 </button>

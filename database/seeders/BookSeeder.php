@@ -12,11 +12,12 @@ class BookSeeder extends Seeder
     /**
      * booksテーブルに書籍データを11件登録する
      *
-     * 登録者はUser::first()（山田太郎）とする。
+     * 登録者は、マイ読書レポートで複数ユーザーの所有書籍を表示できるよう、
+     * 登録済みユーザーからランダムに割り当てる。
      */
     public function run(): void
     {
-        $user = User::first();
+        $users = User::all();
 
         $books = [
             [
@@ -120,7 +121,7 @@ class BookSeeder extends Seeder
                     'published_date' => $data['published_date'],
                     'description' => $data['description'],
                     'image_url' => "https://placehold.co/200x300/e2e8f0/475569?text={$number}",
-                    'user_id' => $user->id,
+                    'user_id' => $users->random()->id,
                 ]
             );
 

@@ -42,7 +42,7 @@
                                 @foreach($genres as $genre)
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <a href="{{ route('genres.show', $genre) }}" class="text-blue-600 hover:text-blue-800">
+                                            <a href="{{ route('genres.show', [$genre, 'from' => 'genres']) }}" class="text-blue-600 hover:text-blue-800">
                                                 {{ $genre->name }}
                                             </a>
                                         </td>

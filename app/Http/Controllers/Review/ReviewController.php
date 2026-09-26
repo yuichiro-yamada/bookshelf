@@ -24,7 +24,7 @@ class ReviewController extends Controller
         $book->reviews()->create([
             'user_id' => Auth::id(),
             'rating' => $validated['rating'],
-            'comment' => $validated['comment'] ?? null,
+            'comment' => $validated['comment'],
         ]);
 
         return back()->with('success', 'レビューを投稿しました。');
@@ -67,7 +67,7 @@ class ReviewController extends Controller
 
         $review->update([
             'rating' => $validated['rating'],
-            'comment' => $validated['comment'] ?? null,
+            'comment' => $validated['comment'],
         ]);
 
         return redirect()->route('books.show', $review->book)->with('success', 'レビューを更新しました。');
@@ -84,6 +84,4 @@ class ReviewController extends Controller
 
         return back()->with('success', 'レビューを削除しました。');
     }
-
-    
 }
