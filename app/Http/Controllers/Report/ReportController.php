@@ -20,8 +20,8 @@ class ReportController extends Controller
     public function index(): View
     {
         /** @var Collection<int, Review> $reviews */
-        $reviews = Review::with('book.genres')
-            ->where('user_id', Auth::id())
+        $reviews = Auth::user()->reviews()
+            ->with('book.genres')
             ->get();
 
         $stats = [

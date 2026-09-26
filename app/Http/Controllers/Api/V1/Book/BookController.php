@@ -27,7 +27,7 @@ class BookController extends Controller
 
         $keyword = $validated['keyword'] ?? '';
         $genreId = $validated['genre'] ?? null;
-        $perPage = $validated['per_page'] ?? 9;
+        $perPage = $validated['per_page'] ?? 10;
 
         // キーワード検索・ジャンル絞り込みは、画面用コントローラー（Book\BookController）
         // と共通のロジックを Book モデルのローカルスコープ（searchKeyword・filterByGenre）に
@@ -71,21 +71,21 @@ class BookController extends Controller
      * POST /api/v1/books
      *
      * Sanctum 認証必須。登録者（user_id）はリクエストボディではなく
-     * 認証済みユーザー（Auth::id()）から設定する。
+     * 認証済みユーザーの books() リレーション経由で設定する。
      */
     public function store(BookRequest $request): JsonResponse
     {
         // 認可（BookPolicy::create）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
-        $book = Book::create([
+        // user_id は User::books() リレーション経由で、ログインユーザーのIDが自動的に設定される
+        $book = Auth::user()->books()->create([
             'title' => $validated['title'],
             'author' => $validated['author'],
             'isbn' => $validated['isbn'] ?? null,
             'published_date' => $validated['published_date'] ?? null,
             'description' => $validated['description'] ?? null,
             'image_url' => $validated['image_url'] ?? null,
-            'user_id' => Auth::id(),
         ]);
 
         $book->genres()->sync($validated['genres']);

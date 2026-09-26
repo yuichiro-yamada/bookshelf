@@ -24,8 +24,9 @@ class ReadingPlanController extends Controller
         $currentStatus = $request->query('status');
         $statusFilter = ReadingPlanStatus::tryFrom((string) $currentStatus);
 
-        $query = ReadingPlan::with('book')
-            ->where('user_id', Auth::id())
+        // User::readingPlans() リレーション経由で、ログインユーザー自身の計画に限定する
+        $query = Auth::user()->readingPlans()
+            ->with('book')
             ->orderBy('target_date');
 
         if ($statusFilter !== null) {
@@ -43,7 +44,7 @@ class ReadingPlanController extends Controller
     public function create(): View
     {
         // すでに「進行中」の計画がある書籍は選択肢から除外する
-        $activeBookIds = ReadingPlan::where('user_id', Auth::id())
+        $activeBookIds = Auth::user()->readingPlans()
             ->where('status', ReadingPlanStatus::InProgress->value)
             ->pluck('book_id');
 
@@ -65,9 +66,9 @@ class ReadingPlanController extends Controller
 
         $this->authorize('create', [ReadingPlan::class, $book]);
 
-        ReadingPlan::create([
+        // user_id は User::readingPlans() リレーション経由で自動的に設定される
+        Auth::user()->readingPlans()->create([
             'book_id' => $book->id,
-            'user_id' => Auth::id(),
             'target_date' => $validated['target_date'],
             'status' => ReadingPlanStatus::InProgress,
         ]);

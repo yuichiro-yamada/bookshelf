@@ -121,14 +121,14 @@ class BookController extends Controller
         // 認可（BookPolicy::create）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
-        $book = Book::create([
+        // user_id は User::books() リレーション経由で、ログインユーザーのIDが自動的に設定される
+        $book = Auth::user()->books()->create([
             'title' => $validated['title'],
             'author' => $validated['author'],
-            'isbn' => $validated['isbn'],
-            'published_date' => $validated['published_date'],
+            'isbn' => $validated['isbn'] ?? null,
+            'published_date' => $validated['published_date'] ?? null,
             'description' => $validated['description'] ?? null,
             'image_url' => $validated['image_url'] ?? null,
-            'user_id' => Auth::id(),
         ]);
 
         $book->genres()->sync($validated['genres']);
@@ -159,8 +159,8 @@ class BookController extends Controller
         $book->update([
             'title' => $validated['title'],
             'author' => $validated['author'],
-            'isbn' => $validated['isbn'],
-            'published_date' => $validated['published_date'],
+            'isbn' => $validated['isbn'] ?? null,
+            'published_date' => $validated['published_date'] ?? null,
             'description' => $validated['description'] ?? null,
             'image_url' => $validated['image_url'] ?? null,
         ]);

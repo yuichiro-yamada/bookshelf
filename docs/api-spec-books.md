@@ -93,7 +93,7 @@ Accept: application/json
 | keyword | string | - | タイトル・著者名を部分一致で検索する | `"夏目"` |
 | genre | integer | - | ジャンルIDで絞り込む（存在するジャンルIDのみ） | `2` |
 | page | integer | - | ページ番号（デフォルト: 1） | `2` |
-| per_page | integer | - | 1ページあたりの件数（デフォルト: 9、最大: 100） | `20` |
+| per_page | integer | - | 1ページあたりの件数（デフォルト: 10、最大: 100） | `20` |
 
 ### バリデーションエラーメッセージ
 
@@ -162,7 +162,7 @@ Accept: application/json
 | last_page | integer | ○ | 最終ページ番号 | `5` |
 | links | array | ○ | ページ番号ごとのリンク情報の配列 | `[{"url":null,"label":"&laquo; Previous","active":false}, ...]` |
 | path | string | ○ | ページネーションのベースURL | `"http://localhost/api/v1/books"` |
-| per_page | integer | ○ | 1ページあたりの件数 | `9` |
+| per_page | integer | ○ | 1ページあたりの件数 | `10` |
 | to | integer \| null | - | このページの最後のデータの通し番号 | `9` |
 | total | integer | ○ | 全件数 | `42` |
 
@@ -201,8 +201,8 @@ Accept: application/json
             { "url": null, "label": "&laquo; Previous", "active": false }
         ],
         "path": "http://localhost/api/v1/books",
-        "per_page": 9,
-        "to": 9,
+        "per_page": 10,
+        "to": 10,
         "total": 42
     }
 }
