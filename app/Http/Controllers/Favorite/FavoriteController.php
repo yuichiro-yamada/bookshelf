@@ -15,7 +15,11 @@ class FavoriteController extends Controller
      */
     public function index(): View
     {
-        $books = Auth::user()->favoriteBooks()->paginate(10);
+        // お気に入りに登録した日時の新しい順（同じ日時の場合は登録の新しい順）に並べる
+        $books = Auth::user()->favoriteBooks()
+            ->orderByPivot('created_at', 'desc')
+            ->orderByPivot('id', 'desc')
+            ->paginate(10);
 
         return view('favorites.index', compact('books'));
     }

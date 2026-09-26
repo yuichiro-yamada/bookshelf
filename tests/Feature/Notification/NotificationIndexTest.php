@@ -114,4 +114,30 @@ class NotificationIndexTest extends TestCase
         $response->assertSee('action="'.route('notifications.read', $unread->id).'"', false);
         $response->assertDontSee('action="'.route('notifications.read', $read->id).'"', false);
     }
+
+    /**
+     * 21-2-6 同じ日時に作成された通知は、期日3日前 → 当日 → 3日後 の順に表示される
+     */
+    public function test_notifications_created_at_same_time_are_ordered_by_timing(): void
+    {
+        $user = User::factory()->create();
+
+        // 日次バッチで同じ日時に作成された3件（作成した順番はばらばら）
+        $sameTime = '2026-09-26 20:00:00';
+        foreach (['three_days_after' => '3日後の通知', 'three_days_before' => '3日前の通知', 'on_due_date' => '当日の通知'] as $timing => $title) {
+            $notification = $this->createNotification($user, $title, '本文', $sameTime);
+            $notification->forceFill(['data' => array_merge($notification->data, ['timing' => $timing])])->save();
+        }
+        // 作成日時が異なる通知（第1優先の「作成日時の新しい順」が優先される）
+        $this->createNotification($user, 'より新しい通知', '本文', '2026-09-27 20:00:00');
+        $this->createNotification($user, 'より古い通知', '本文', '2026-09-25 20:00:00');
+
+        $response = $this->actingAs($user)->get(route('notifications.index'));
+
+        $expected = ['より新しい通知', '3日前の通知', '当日の通知', '3日後の通知', 'より古い通知'];
+
+        $response->assertOk();
+        $response->assertViewHas('notifications', fn ($notifications) => $notifications->pluck('data.title')->all() === $expected);
+        $response->assertSeeInOrder($expected);
+    }
 }

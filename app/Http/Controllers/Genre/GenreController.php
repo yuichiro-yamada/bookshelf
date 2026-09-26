@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Genre\GenreRequest;
 use App\Models\Genre;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class GenreController extends Controller
@@ -40,12 +41,28 @@ class GenreController extends Controller
 
     /**
      * ジャンルに紐づく書籍一覧を表示する
+     *
+     * ジャンル詳細へは「ジャンル一覧」と「マイ読書レポート」の2画面から遷移できるため、
+     * 遷移元をクエリパラメータ from で受け取り、「戻る」リンクの遷移先・文言を切り替える
+     * （from=reports の場合はマイ読書レポート、それ以外はジャンル一覧へ戻る）。
      */
-    public function show(Genre $genre): View
+    public function show(Request $request, Genre $genre): View
     {
-        $books = $genre->books()->with('genres')->paginate(10);
+        // 書籍一覧と同じく登録日時の新しい順（同じ日時の場合は ID の新しい順）に並べる。
+        // 中間テーブル book_genre にも created_at があるため、books テーブルのカラムと明示する。
+        // ページ送りしても from が引き継がれるよう withQueryString() を付ける
+        $books = $genre->books()
+            ->with('genres')
+            ->orderByDesc('books.created_at')
+            ->orderByDesc('books.id')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('genres.show', compact('genre', 'books'));
+        [$backUrl, $backLabel] = $request->query('from') === 'reports'
+            ? [route('reports.index'), 'マイ読書レポートに戻る']
+            : [route('genres.index'), 'ジャンル一覧に戻る'];
+
+        return view('genres.show', compact('genre', 'books', 'backUrl', 'backLabel'));
     }
 
     /**

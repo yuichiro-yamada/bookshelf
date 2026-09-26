@@ -17,12 +17,32 @@ http://localhost/api/v1
 - Laravel Sanctumによるトークン認証（Bearer Token）
 - 書き込み系（登録・更新・削除）のみ認証が必要（一覧・詳細取得は認証不要）
 - トークンを発行するAPIは用意していない。開発・動作確認用には、`sail artisan tinker` で `User::find(1)->createToken('test')->plainTextToken` を実行して取得する
-- 認証が必要なエンドポイントには、リクエストヘッダーに以下を付与する
+- 認証が必要なエンドポイントには、リクエストヘッダーに `Authorization: Bearer {トークン}` を付与する
+
+### リクエストヘッダー
+
+すべてのエンドポイント（認証不要の一覧・詳細取得を含む）で、`Accept: application/json` を付与する。
+
+| ヘッダー | 値 | 対象 |
+|---|---|---|
+| Accept | `application/json` | 全エンドポイント |
+| Authorization | `Bearer {トークン}` | 認証が必要なエンドポイント（登録・更新・削除） |
 
 ```
-Authorization: Bearer {トークン}
 Accept: application/json
+Authorization: Bearer {トークン}
 ```
+
+エラー時のレスポンスは、`Accept: application/json` の有無によって次のように変わる（正常時は、ヘッダーの有無にかかわらずJSONを返す）。本APIは `Accept: application/json` の付与を前提としており、下表「なしの場合」は想定外の利用方法となる。
+
+| ケース | `Accept: application/json` ありの場合 | なしの場合 |
+|---|---|---|
+| 未認証 | 401（JSON） | 302（画面のログインページへリダイレクト） |
+| 権限なし | 403（JSON） | 403（HTMLのエラーページ） |
+| 存在しないID | 404（JSON） | 404（HTMLのエラーページ） |
+| バリデーションエラー | 422（JSON） | 302（直前のページへリダイレクト） |
+
+※ エラー時にJSONを返す判定は、`$request->expectsJson()`（`app/Exceptions/Handler.php`・`app/Http/Middleware/Authenticate.php`・FormRequest）で行っている。
 
 ### 共通HTTPステータスコード
 

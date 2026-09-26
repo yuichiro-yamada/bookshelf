@@ -55,4 +55,27 @@ class FavoriteIndexTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    /**
+     * 6-1-4 お気に入りに登録した日時の新しい順に表示される
+     */
+    public function test_favorites_are_listed_in_newest_favorited_order(): void
+    {
+        $user = User::factory()->create();
+        // 書籍の登録順（古→新）とは逆の順番でお気に入り登録する
+        $first = Book::factory()->create(['title' => '最初に登録された書籍', 'created_at' => now()->subDays(3)]);
+        $second = Book::factory()->create(['title' => '2番目に登録された書籍', 'created_at' => now()->subDays(2)]);
+        $third = Book::factory()->create(['title' => '3番目に登録された書籍', 'created_at' => now()->subDay()]);
+        $user->favoriteBooks()->attach($third->id, ['created_at' => now()->subHours(3), 'updated_at' => now()->subHours(3)]);
+        $user->favoriteBooks()->attach($first->id, ['created_at' => now()->subHours(2), 'updated_at' => now()->subHours(2)]);
+        $user->favoriteBooks()->attach($second->id, ['created_at' => now()->subHour(), 'updated_at' => now()->subHour()]);
+
+        $response = $this->actingAs($user)->get(route('favorites.index'));
+
+        $expected = ['2番目に登録された書籍', '最初に登録された書籍', '3番目に登録された書籍'];
+
+        $response->assertOk();
+        $response->assertViewHas('books', fn ($books) => $books->pluck('title')->all() === $expected);
+        $response->assertSeeInOrder($expected);
+    }
 }
