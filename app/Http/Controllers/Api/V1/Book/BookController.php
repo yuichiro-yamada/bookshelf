@@ -14,11 +14,17 @@ use Illuminate\Support\Facades\Auth;
 class BookController extends Controller
 {
     /**
+     * 書籍一覧の1ページあたりの件数（固定）
+     */
+    private const PER_PAGE = 10;
+
+    /**
      * 書籍一覧を取得する
      *
      * GET /api/v1/books
      *
      * キーワード検索（タイトル・著者名）、ジャンル絞り込み、ページネーションに対応する。
+     * 1ページの件数は10件で固定（クライアントからは指定できない）。次のページは page を指定して再度取得する。
      * 各書籍にジャンル情報・平均評価（average_rating）・レビュー件数（review_count）を含める。
      */
     public function index(BookIndexRequest $request): AnonymousResourceCollection
@@ -27,7 +33,6 @@ class BookController extends Controller
 
         $keyword = $validated['keyword'] ?? '';
         $genreId = $validated['genre'] ?? null;
-        $perPage = $validated['per_page'] ?? 10;
 
         // キーワード検索・ジャンル絞り込みは、画面用コントローラー（Book\BookController）
         // と共通のロジックを Book モデルのローカルスコープ（searchKeyword・filterByGenre）に
@@ -40,7 +45,7 @@ class BookController extends Controller
             ->searchKeyword($keyword)
             ->filterByGenre($genreId)
             ->latest()->latest('id')
-            ->paginate($perPage)
+            ->paginate(self::PER_PAGE)
             ->withQueryString();
 
         return BookResource::collection($books);

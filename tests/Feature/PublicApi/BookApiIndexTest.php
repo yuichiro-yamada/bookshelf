@@ -129,30 +129,30 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-7 per_page・pageでページネーションできる(指定なしの場合は1ページ10件)
+     * 10-2-7 pageでページを移動できる(1ページ10件固定)
      */
-    public function test_pagination_with_per_page_and_page(): void
+    public function test_pagination_with_page(): void
     {
         Book::factory()->count(11)->create();
 
-        // パラメータなし：1ページ10件
-        $default = $this->getJson(self::URI);
-        $default->assertOk();
-        $default->assertJsonCount(10, 'data');
-        $default->assertJsonPath('meta.per_page', 10);
-        $default->assertJsonPath('meta.current_page', 1);
-        $default->assertJsonPath('meta.last_page', 2);
-        $default->assertJsonPath('meta.total', 11);
+        // page 指定なし：1ページ目（10件）
+        $first = $this->getJson(self::URI);
+        $first->assertOk();
+        $first->assertJsonCount(10, 'data');
+        $first->assertJsonPath('meta.per_page', 10);
+        $first->assertJsonPath('meta.current_page', 1);
+        $first->assertJsonPath('meta.last_page', 2);
+        $first->assertJsonPath('meta.total', 11);
+        $this->assertNull($first->json('links.prev'));
+        $this->assertStringContainsString('page=2', $first->json('links.next'));
 
-        // per_page・page を指定
-        $paged = $this->getJson(self::URI.'?per_page=5&page=3');
-        $paged->assertOk();
-        $paged->assertJsonCount(1, 'data');
-        $paged->assertJsonPath('meta.per_page', 5);
-        $paged->assertJsonPath('meta.current_page', 3);
-        $paged->assertJsonPath('meta.last_page', 3);
-        $this->assertStringContainsString('page=2', $paged->json('links.prev'));
-        $this->assertNull($paged->json('links.next'));
+        // page=2 を指定：残りの1件
+        $second = $this->getJson(self::URI.'?page=2');
+        $second->assertOk();
+        $second->assertJsonCount(1, 'data');
+        $second->assertJsonPath('meta.current_page', 2);
+        $this->assertStringContainsString('page=1', $second->json('links.prev'));
+        $this->assertNull($second->json('links.next'));
     }
 
     /**
@@ -160,10 +160,6 @@ class BookApiIndexTest extends TestCase
      */
     public function test_invalid_query_parameters_return_422(): void
     {
-        $this->getJson(self::URI.'?per_page=101')
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['per_page' => '取得件数は100以下の値で指定してください']);
-
         $this->getJson(self::URI.'?genre=999')
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['genre' => '指定されたジャンルは存在しません']);
