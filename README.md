@@ -280,6 +280,7 @@ Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必�
 
 - API は、すべてのエンドポイントでリクエストヘッダーに `Accept: application/json` を付与する前提とし、付与しない場合までJSONレスポンスを保証する専用のミドルウェアは追加しない。
 - トークン発行用のエンドポイントは作成しない（Sanctum によるBearerトークン認証への対応まで。テストでは `$user->createToken()` でトークンを発行して認証する）。
+- Laravel 標準のテーブルのうち、`password_reset_tokens`（パスワードリセット）と `failed_jobs`（キューで失敗したジョブ）は、本アプリでは該当機能を使っていないため未使用。マイグレーションは Laravel 標準のまま残している。`personal_access_tokens` は公開APIの Sanctum トークン認証で使用する。
 - テストカバレッジが0%の Laravel 標準ファイル（`TrustHosts`・`BroadcastServiceProvider` など）は削除せずに残している。
 
 ## 既知の課題（未対応）
