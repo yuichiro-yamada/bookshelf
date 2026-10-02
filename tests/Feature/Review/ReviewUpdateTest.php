@@ -169,4 +169,20 @@ class ReviewUpdateTest extends TestCase
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 5, 'comment' => '元のコメント']);
     }
+
+    /**
+     * 4-3-9 他人が投稿したレビューの編集画面には直接アクセスできない
+     */
+    public function test_other_user_cannot_open_edit_page(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $book = Book::factory()->for(User::factory())->create();
+        $review = Review::factory()->for($book)->for($owner)->create(['comment' => '他人のレビュー']);
+
+        $response = $this->actingAs($otherUser)->get(route('reviews.edit', $review));
+
+        $response->assertForbidden();
+        $response->assertDontSee('他人のレビュー');
+    }
 }

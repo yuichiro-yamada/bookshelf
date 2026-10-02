@@ -116,7 +116,7 @@ class NotificationIndexTest extends TestCase
     }
 
     /**
-     * 21-2-6 同じ日時に作成された通知は、期日3日前 → 当日 → 3日後 の順に表示される
+     * 21-2-6 同じ日時に作成された通知は、期日3日前→期日当日→期日3日後の順に表示される
      */
     public function test_notifications_created_at_same_time_are_ordered_by_timing(): void
     {
