@@ -112,7 +112,7 @@ class ReadingPlanDeadlineTest extends TestCase
     /**
      * 18-1-7 一覧・編集画面を表示しても、期日を過ぎた「進行中」の計画のステータスは変更されない
      */
-    public function test_viewing_pages_does_not_expire_overdue_plans(): void
+    public function test_viewing_pages_does_not_expire_past_due_plans(): void
     {
         $user = User::factory()->create();
         $plan = ReadingPlan::factory()->for($user)->create([

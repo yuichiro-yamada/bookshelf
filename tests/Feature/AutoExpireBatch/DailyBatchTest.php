@@ -33,12 +33,12 @@ class DailyBatchTest extends TestCase
     public function test_daily_batch_expires_plans_and_sends_reminders(): void
     {
         Notification::fake();
-        $overduePlan = ReadingPlan::factory()->create(['target_date' => '2026-09-20']);
+        $pastDuePlan = ReadingPlan::factory()->create(['target_date' => '2026-09-20']);
         $upcomingPlan = ReadingPlan::factory()->create(['target_date' => '2026-09-29']);
 
         $this->artisan('reading-plans:daily')->assertSuccessful();
 
-        $this->assertSame(ReadingPlanStatus::Expired, $overduePlan->fresh()->status);
+        $this->assertSame(ReadingPlanStatus::Expired, $pastDuePlan->fresh()->status);
         Notification::assertSentTo(
             $upcomingPlan->user,
             ReadingPlanReminder::class,
