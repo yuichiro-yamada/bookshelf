@@ -2,16 +2,32 @@
 
 namespace App\Http\Requests\Review;
 
+use App\Models\Book;
+use App\Models\Review;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReviewRequest extends FormRequest
 {
     /**
      * このリクエストを実行してよいか
+     *
+     * 入力チェック（rules）より先に権限を判定するため、ここで ReviewPolicy を呼び出す。
+     * 権限がない場合は、入力内容にかかわらず 403 になる。
+     * - 更新（route に {review} が含まれる場合）: レビューの投稿者本人のみ（ReviewPolicy::update）
+     * - 投稿（route に {book} が含まれる場合）: その書籍にまだレビューを投稿していないこと（ReviewPolicy::create）
      */
     public function authorize(): bool
     {
-        return true;
+        $review = $this->route('review');
+
+        if ($review instanceof Review) {
+            return $this->user()?->can('update', $review) ?? false;
+        }
+
+        $book = $this->route('book');
+
+        return $book instanceof Book
+            && ($this->user()?->can('create', [Review::class, $book]) ?? false);
     }
 
     /**

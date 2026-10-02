@@ -393,4 +393,23 @@ class ReadingPlanTest extends TestCase
         $response->assertSessionHas('success', '「今日が期日の書籍」の読書計画を作成しました。');
         $this->assertDatabaseCount('reading_plans', 1);
     }
+
+    /**
+     * 17-1-21 同じ書籍に進行中の計画がある状態で不正な期日を指定しても、入力エラーではなく403になる
+     */
+    public function test_authorization_is_checked_before_validation_on_store(): void
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+        ReadingPlan::factory()->for($user)->for($book)->create();
+
+        $response = $this->actingAs($user)->post(route('reading-plans.store'), [
+            'book_id' => $book->id,
+            'target_date' => '',
+        ]);
+
+        $response->assertForbidden();
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('reading_plans', 1);
+    }
 }

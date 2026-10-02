@@ -149,4 +149,24 @@ class ReviewUpdateTest extends TestCase
         $response->assertSessionHasErrors(['comment' => 'コメントを入力してください']);
         $this->assertDatabaseHas('reviews', ['id' => $review->id, 'comment' => '編集前コメント']);
     }
+
+    /**
+     * 4-3-8 他人が投稿したレビューに不正な入力で更新しようとしても、入力エラーではなく403になる
+     */
+    public function test_authorization_is_checked_before_validation_on_update(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $book = Book::factory()->for(User::factory())->create();
+        $review = Review::factory()->for($book)->for($owner)->create(['rating' => 5, 'comment' => '元のコメント']);
+
+        $response = $this->actingAs($otherUser)->put(route('reviews.update', $review), [
+            'rating' => '',
+            'comment' => '',
+        ]);
+
+        $response->assertForbidden();
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('reviews', ['id' => $review->id, 'rating' => 5, 'comment' => '元のコメント']);
+    }
 }

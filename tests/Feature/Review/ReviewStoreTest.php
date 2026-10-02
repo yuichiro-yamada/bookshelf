@@ -113,4 +113,23 @@ class ReviewStoreTest extends TestCase
         $response->assertForbidden();
         $this->assertSame(1, Review::where('book_id', $book->id)->where('user_id', $user->id)->count());
     }
+
+    /**
+     * 4-2-6 既にレビューを投稿済みの書籍に不正な入力で投稿しても、入力エラーではなく403になる
+     */
+    public function test_authorization_is_checked_before_validation_on_store(): void
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->for(User::factory())->create();
+        Review::factory()->for($book)->for($user)->create();
+
+        $response = $this->actingAs($user)->post(route('reviews.store', $book), [
+            'rating' => '',
+            'comment' => '',
+        ]);
+
+        $response->assertForbidden();
+        $response->assertSessionHasNoErrors();
+        $this->assertSame(1, Review::where('book_id', $book->id)->where('user_id', $user->id)->count());
+    }
 }

@@ -189,4 +189,22 @@ class ReadingPlanDeadlineTest extends TestCase
         $this->assertSame($originalDate, $expiredPlan->target_date->toDateString());
         $this->assertSame(1, ReadingPlan::where('book_id', $book->id)->where('status', 'in_progress')->count());
     }
+
+    /**
+     * 18-1-12 他人が作成した読書計画に不正な期日で更新しようとしても、入力エラーではなく403になる
+     */
+    public function test_authorization_is_checked_before_validation_on_update(): void
+    {
+        $otherUser = User::factory()->create();
+        $plan = ReadingPlan::factory()->create(['target_date' => now()->addWeek()->toDateString()]);
+        $originalDate = $plan->target_date->toDateString();
+
+        $response = $this->actingAs($otherUser)->put(route('reading-plans.update', $plan), [
+            'target_date' => '',
+        ]);
+
+        $response->assertForbidden();
+        $response->assertSessionHasNoErrors();
+        $this->assertSame($originalDate, $plan->fresh()->target_date->toDateString());
+    }
 }

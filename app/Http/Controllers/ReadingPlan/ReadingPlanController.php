@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ReadingPlan\ReadingPlanRequest;
 use App\Models\Book;
 use App\Models\ReadingPlan;
+use App\Notifications\ReadingPlanReminder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -60,11 +61,10 @@ class ReadingPlanController extends Controller
      */
     public function store(ReadingPlanRequest $request): RedirectResponse
     {
+        // 認可（ReadingPlanPolicy::create）はReadingPlanRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book = Book::findOrFail($validated['book_id']);
-
-        $this->authorize('create', [ReadingPlan::class, $book]);
 
         // user_id は User::readingPlans() リレーション経由で自動的に設定される
         Auth::user()->readingPlans()->create([
@@ -91,8 +91,7 @@ class ReadingPlanController extends Controller
      */
     public function update(ReadingPlanRequest $request, ReadingPlan $readingPlan): RedirectResponse
     {
-        $this->authorize('update', $readingPlan);
-
+        // 認可（ReadingPlanPolicy::update）はReadingPlanRequest::authorize()側で行っている
         $validated = $request->validated();
 
         // target_date は「今日以降」しか許可していないため、更新後は必ず「進行中」になる
@@ -121,14 +120,29 @@ class ReadingPlanController extends Controller
 
     /**
      * 読書計画を削除する
+     *
+     * 計画に紐づいて送信済みのリマインダー通知（ReadingPlanReminder）もあわせて削除する。
+     * notifications はポリモーフィック関連のため外部キー制約による連鎖削除ができず、
+     * ここで明示的に削除する。通知の削除と計画の削除は1つのトランザクションで行い、
+     * どちらかが失敗した場合は両方とも元に戻す。
      */
     public function destroy(ReadingPlan $readingPlan): RedirectResponse
     {
         $this->authorize('delete', $readingPlan);
 
-        // 計画の削除と、ReadingPlan モデルの deleting イベントで行う関連通知の削除を
-        // 1つのトランザクションにまとめる（どちらかが失敗した場合は両方とも元に戻す）
-        DB::transaction(fn () => $readingPlan->delete());
+        DB::transaction(function () use ($readingPlan) {
+            // notifications.data は text カラムに保存されたJSONで、DB側のJSON演算子は
+            // ドライバ（sqlite/mysql）によって扱いが異なるため、DatabaseNotification の
+            // data キャスト（配列）を介してPHP側で plan_id を照合する。
+            $readingPlan->user
+                ->notifications()
+                ->where('type', ReadingPlanReminder::class)
+                ->get()
+                ->filter(fn ($notification) => (int) ($notification->data['plan_id'] ?? 0) === (int) $readingPlan->id)
+                ->each(fn ($notification) => $notification->delete());
+
+            $readingPlan->delete();
+        });
 
         return redirect()->route('reading-plans.index')->with('success', '読書計画を削除しました。');
     }

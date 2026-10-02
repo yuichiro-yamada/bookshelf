@@ -2,16 +2,38 @@
 
 namespace App\Http\Requests\ReadingPlan;
 
+use App\Models\Book;
+use App\Models\ReadingPlan;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReadingPlanRequest extends FormRequest
 {
     /**
      * このリクエストを実行してよいか
+     *
+     * 入力チェック（rules）より先に権限を判定するため、ここで ReadingPlanPolicy を呼び出す。
+     * 権限がない場合は、入力内容にかかわらず 403 になる。
+     * - 更新（route に {readingPlan} が含まれる場合）: 計画の作成者本人かつ更新可能な状態であること（ReadingPlanPolicy::update）
+     * - 新規作成: 選択した書籍に、自分の「進行中」の計画がないこと（ReadingPlanPolicy::create）
+     *   書籍が特定できない場合（未選択・存在しないID など）は判定対象がないため許可し、
+     *   入力チェック（book_id の required・exists）でエラーにする。
      */
     public function authorize(): bool
     {
-        return true;
+        $readingPlan = $this->route('readingPlan');
+
+        if ($readingPlan instanceof ReadingPlan) {
+            return $this->user()?->can('update', $readingPlan) ?? false;
+        }
+
+        $bookId = $this->input('book_id');
+        $book = is_scalar($bookId) ? Book::find($bookId) : null;
+
+        if ($book === null) {
+            return true;
+        }
+
+        return $this->user()?->can('create', [ReadingPlan::class, $book]) ?? false;
     }
 
     /**
