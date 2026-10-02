@@ -3,7 +3,9 @@
 namespace Tests\Feature\AutoExpireBatch;
 
 use App\Enums\ReadingPlanStatus;
+use App\Models\Book;
 use App\Models\ReadingPlan;
+use App\Models\User;
 use App\Notifications\ReadingPlanReminder;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
@@ -82,5 +84,34 @@ class DailyBatchTest extends TestCase
 
         $this->assertCount(1, $events, 'reading-plans:daily がスケジュールに登録されていません');
         $this->assertSame('0 20 * * *', $events->first()->expression);
+    }
+
+    /**
+     * 20-2-4 日次バッチで送信した通知がnotificationsテーブルに保存され、通知一覧に表示される
+     *
+     * 他のテストは Notification::fake() で「送信したこと」を確認しているため、
+     * ここでは fake を使わずに、実際に保存されて画面に表示されるところまでを確認する。
+     */
+    public function test_reminder_sent_by_daily_batch_is_saved_and_listed(): void
+    {
+        $user = User::factory()->create();
+        $plan = ReadingPlan::factory()->for($user)
+            ->for(Book::factory()->create(['title' => '保存確認の書籍']))
+            ->create(['target_date' => '2026-09-29']); // 期日の3日前
+
+        $this->artisan('reading-plans:daily')->assertSuccessful();
+
+        $this->assertDatabaseCount('notifications', 1);
+        $notification = $user->fresh()->notifications->first();
+        $this->assertSame(ReadingPlanReminder::class, $notification->type);
+        $this->assertNull($notification->read_at);
+        $this->assertSame($plan->id, (int) $notification->data['plan_id']);
+        $this->assertSame('three_days_before', $notification->data['timing']);
+
+        $this->actingAs($user)->get(route('notifications.index'))
+            ->assertOk()
+            ->assertSee('読書期限のお知らせ')
+            ->assertSee('「保存確認の書籍」の読書期限まであと3日です。')
+            ->assertSee('未読');
     }
 }

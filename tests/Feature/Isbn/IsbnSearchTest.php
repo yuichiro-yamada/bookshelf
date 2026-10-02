@@ -159,4 +159,30 @@ class IsbnSearchTest extends TestCase
         $response->assertStatus(502);
         $response->assertExactJson(['error' => '書籍情報の取得中にエラーが発生しました。']);
     }
+
+    /**
+     * 14-1-8 APIの検索結果はあるが、ISBNが一致する書籍がない場合も404エラーが返る
+     */
+    public function test_returns_404_when_no_item_matches_isbn(): void
+    {
+        Http::fake([
+            '*' => Http::response([
+                'items' => [
+                    [
+                        'volumeInfo' => [
+                            'title' => '別のISBNの書籍',
+                            'industryIdentifiers' => [
+                                ['type' => 'ISBN_13', 'identifier' => '9784999999999'],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->actingAs(User::factory()->create())->getJson('/books/isbn/'.self::ISBN);
+
+        $response->assertNotFound();
+        $response->assertExactJson(['error' => '該当する書籍が見つかりませんでした。']);
+    }
 }
