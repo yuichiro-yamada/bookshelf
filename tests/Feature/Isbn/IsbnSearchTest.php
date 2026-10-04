@@ -4,6 +4,8 @@ namespace Tests\Feature\Isbn;
 
 use App\Models\Book;
 use App\Models\User;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Psr7\Request as PsrRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -184,5 +186,27 @@ class IsbnSearchTest extends TestCase
 
         $response->assertNotFound();
         $response->assertExactJson(['error' => '該当する書籍が見つかりませんでした。']);
+    }
+
+    /**
+     * 14-1-9 Google Books APIに接続できない場合（接続失敗・タイムアウト）も、502エラーが返る
+     *
+     * 接続できない場合、HTTPクライアントは応答を返さずに ConnectionException を投げる。
+     * 実際の接続失敗と同じ流れになるよう、Guzzle の ConnectException を投げて再現する
+     * （Laravel の HTTPクライアントが ConnectionException に変換する）。
+     */
+    public function test_returns_502_when_api_connection_fails(): void
+    {
+        Http::fake(function ($request) {
+            throw new ConnectException(
+                'cURL error 7: Failed to connect',
+                new PsrRequest('GET', $request->url())
+            );
+        });
+
+        $response = $this->actingAs(User::factory()->create())->getJson('/books/isbn/'.self::ISBN);
+
+        $response->assertStatus(502);
+        $response->assertExactJson(['error' => '書籍情報の取得中にエラーが発生しました。']);
     }
 }

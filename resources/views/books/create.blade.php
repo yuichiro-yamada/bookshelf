@@ -78,8 +78,10 @@
                 });
                 const data = await response.json();
 
-                if (data.error) {
-                    errorEl.textContent = data.error;
+                // エラー時（HTTPステータスが200番台以外）は入力欄を変更しない。
+                // error キーのないエラー（ログイン切れの401、想定外の500など）も失敗として扱う。
+                if (!response.ok || data.error) {
+                    errorEl.textContent = data.error || '書籍情報の取得中にエラーが発生しました。';
                     errorEl.classList.remove('hidden');
                 } else {
                     document.getElementById('title').value = data.title || '';
