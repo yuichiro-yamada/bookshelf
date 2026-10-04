@@ -46,44 +46,314 @@
 
 ## 環境構築
 
-Docker と Composer が使える環境を前提にしています。
+環境構築の手順は次の2つに分けて記載しています。
+
+- **A. リポジトリをクローンして起動する手順**：このアプリを手元で動かす場合は、こちらの手順だけを上から順に実行してください。
+- **B. 参考：このプロジェクトを新規に作成したときの手順**：Laravel 10 プロジェクトの作成から Tailwind CSS の導入までの記録です。A の手順を実行する場合は不要です（B の内容はすべてリポジトリに含まれています）。
+
+### 前提条件
+
+- Docker Desktop がインストールされ、起動していること
+- Git がインストールされていること
+- macOS または Linux のターミナルで実行することを前提にしています（Windows の場合は WSL2 上の Ubuntu などで実行してください）
+- 手元に PHP・Composer・Node.js をインストールする必要はありません（すべて Docker コンテナ内で実行します）
+
+### A. リポジトリをクローンして起動する手順
+
+#### 1. リポジトリをクローンする
 
 ```bash
-# 1. 依存パッケージのインストール
-composer install
+git clone git@github.com:yuichiro-yamada/bookshelf.git bookshelf-app
+cd bookshelf-app
+```
 
-# 2. 環境変数ファイルの作成
+SSH キーを設定していない場合は、HTTPS の URL を使います。
+
+```bash
+git clone https://github.com/yuichiro-yamada/bookshelf.git bookshelf-app
+cd bookshelf-app
+```
+
+以降のコマンドは、すべて `bookshelf-app` ディレクトリで実行します。
+
+#### 2. Composer の依存パッケージをインストールする
+
+`vendor` ディレクトリ（Laravel Sail を含む）はリポジトリに含まれていないため、最初に Docker の一時コンテナで `composer install` を実行します。
+
+```bash
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php84-composer:latest \
+    composer install --ignore-platform-reqs
+```
+
+完了すると `vendor` ディレクトリが作成され、`./vendor/bin/sail` コマンドが使えるようになります。
+
+#### 3. 環境変数ファイル（.env）を作成する
+
+```bash
 cp .env.example .env
 ```
 
-`.env` を次のように編集します（Sail の MySQL コンテナに接続する場合）。
+`.env.example` には Sail の MySQL コンテナに接続する設定があらかじめ入っているため、データベースの設定を変更する必要はありません。
 
 ```dotenv
+DB_CONNECTION=mysql
 DB_HOST=mysql
+DB_PORT=3306
 DB_DATABASE=laravel
 DB_USERNAME=sail
 DB_PASSWORD=password
+```
 
+ISBN検索機能（Google Books API）を使う場合は、`.env` の `GOOGLE_BOOKS_API_KEY` に API キーを設定します。未設定でもアプリは起動します（ISBN検索以外の機能は API キーなしで動作します）。
+
+```dotenv
 # ISBN検索機能で使用（Google Books API のAPIキー）
-GOOGLE_BOOKS_API_KEY=
+GOOGLE_BOOKS_API_KEY=取得したAPIキー
 # Google Books API のエンドポイント（通常は変更不要。未設定の場合もこの値が使われる）
 GOOGLE_BOOKS_API_URL=https://www.googleapis.com/books/v1/volumes
 ```
 
+#### 4. コンテナを起動する
+
 ```bash
-# 3. コンテナの起動
 ./vendor/bin/sail up -d
+```
 
-# 4. アプリケーションキーの生成・マイグレーション・初期データ投入
+アプリケーション（`laravel.test`）・MySQL（`mysql`）・phpMyAdmin（`phpmyadmin`）の3つのコンテナが起動します。初回はイメージのビルドに数分かかります。
+
+起動状態は次のコマンドで確認できます（3つとも `Up` になっていれば OK）。
+
+```bash
+./vendor/bin/sail ps
+```
+
+> ポート 80・3306・8080 を他のアプリが使っている場合は起動に失敗します。その場合は `.env` に `APP_PORT=8000`・`FORWARD_DB_PORT=3307`・`FORWARD_PHPMYADMIN_PORT=8081` のように空いているポートを指定してから、もう一度起動してください。
+
+#### 5. アプリケーションキーを生成し、データベースを作成する
+
+```bash
+# アプリケーションキーの生成（.env の APP_KEY に値が入る）
 ./vendor/bin/sail artisan key:generate
-./vendor/bin/sail artisan migrate --seed
 
-# 5. フロントエンドのビルド（開発時は dev）
+# テーブルの作成と初期データの投入
+./vendor/bin/sail artisan migrate --seed
+```
+
+> コンテナ起動直後は MySQL の準備が終わっておらず、`migrate` が `Connection refused` などのエラーになることがあります。その場合は30秒ほど待ってから、もう一度実行してください。
+
+#### 6. フロントエンド（Tailwind CSS など）をビルドする
+
+```bash
+# npm パッケージのインストール
 ./vendor/bin/sail npm install
+
+# CSS・JavaScript のビルド
+./vendor/bin/sail npm run build
+```
+
+画面のコードを編集しながら開発する場合は、`build` の代わりに次のコマンドを実行します（変更が自動で反映されます。実行中はターミナルを開いたままにしてください）。
+
+```bash
 ./vendor/bin/sail npm run dev
 ```
 
-起動後、http://localhost にアクセスします（phpMyAdmin は http://localhost:8080）。
+#### 7. ブラウザで確認する
+
+| 用途 | URL |
+|---|---|
+| アプリケーション | http://localhost |
+| phpMyAdmin | http://localhost:8080 |
+
+ログインに使うアカウントは「初期データ」を参照してください（例：`yamada@example.com` / `password`）。
+
+#### コンテナの停止・再起動
+
+```bash
+# 停止
+./vendor/bin/sail down
+
+# 2回目以降の起動（手順2・3・5・6 は不要）
+./vendor/bin/sail up -d
+```
+
+> 毎回 `./vendor/bin/sail` と入力するのが手間な場合は、`alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'` をシェルの設定ファイル（`~/.zshrc` など）に追加すると、`sail up -d` のように短く実行できます。
+
+### B. 参考：このプロジェクトを新規に作成したときの手順
+
+このアプリを最初に作成したときの手順です。A の手順で起動する場合は実行不要です。
+
+#### 1. Laravel 10 プロジェクトを作成する
+
+手元に PHP・Composer がなくても実行できるよう、Composer の Docker イメージを使って作成します。
+
+```bash
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/app" \
+    -w /app \
+    composer:2 \
+    create-project laravel/laravel:^10.0 bookshelf-app
+
+cd bookshelf-app
+```
+
+#### 2. Laravel Sail を導入する
+
+```bash
+# Sail のインストール
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php84-composer:latest \
+    composer require laravel/sail --dev
+
+# Sail の設定ファイル（compose.yaml）の作成。MySQL を使う
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php84-composer:latest \
+    php artisan sail:install --with=mysql
+```
+
+`sail:install` により、`compose.yaml` が作成され、`.env` のデータベース設定が Sail の MySQL コンテナ用（`DB_HOST=mysql`・`DB_USERNAME=sail`・`DB_PASSWORD=password`）に書き換わります。
+
+#### 3. phpMyAdmin を追加する
+
+`compose.yaml` の `services:` の中（`mysql:` の定義の後ろ）に、次の `phpmyadmin:` の定義を追加します（インデントは `mysql:` とそろえます）。
+
+```yaml
+    phpmyadmin:
+        image: 'phpmyadmin:latest'
+        ports:
+            - '${FORWARD_PHPMYADMIN_PORT:-8080}:80'
+        environment:
+            PMA_HOST: mysql
+            PMA_USER: '${DB_USERNAME}'
+            PMA_PASSWORD: '${DB_PASSWORD}'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+```
+
+これで、コンテナ起動後に http://localhost:8080 から phpMyAdmin にアクセスできます（`.env` のユーザー名・パスワードで自動ログインします）。
+
+#### 4. コンテナを起動し、アプリケーションキーを生成する
+
+```bash
+# コンテナの起動（初回はイメージのビルドに数分かかる）
+./vendor/bin/sail up -d
+
+# アプリケーションキーの生成
+./vendor/bin/sail artisan key:generate
+```
+
+※ `create-project` で作成した直後の `.env` にはキーが生成済みのため、この手順では上書きされます（`.env` を作り直した場合にも必要な手順です）。
+
+#### 5. 日本語ロケールを設定する
+
+`config/app.php` の次の3か所を変更します。
+
+```php
+'timezone' => 'Asia/Tokyo',   // 変更前：'UTC'
+'locale' => 'ja',             // 変更前：'en'
+'faker_locale' => 'ja_JP',    // 変更前：'en_US'
+```
+
+- `timezone`：日時の保存・表示を日本時間にする（日次バッチも 20:00 日本時間に実行される）
+- `locale`：アプリの言語を日本語にする（HTML の `lang` 属性が `ja` になる）
+- `faker_locale`：ファクトリ・シーダーで作るダミーデータ（人名など）を日本語にする
+- `fallback_locale` は `en` のままにしています。日本語の言語ファイル（`lang/ja`）は追加していないため、Laravel 標準のメッセージは英語のまま使われます。画面・バリデーションの日本語メッセージは、各 FormRequest などで個別に定義しています。
+
+設定を変更したら、キャッシュをクリアしておきます。
+
+```bash
+./vendor/bin/sail artisan config:clear
+```
+
+#### 6. Tailwind CSS を導入する
+
+```bash
+# Tailwind CSS（v3）・PostCSS・Autoprefixer・フォーム用プラグインのインストール
+./vendor/bin/sail npm install -D tailwindcss@3 postcss autoprefixer @tailwindcss/forms
+
+# Alpine.js（ドロップダウンメニューなどで使用）のインストール
+./vendor/bin/sail npm install alpinejs
+
+# 設定ファイル（tailwind.config.js・postcss.config.js）の作成
+./vendor/bin/sail npx tailwindcss init -p
+```
+
+`tailwind.config.js` を次の内容にします（Tailwind を適用するファイルの場所と、フォーム用プラグインを指定）。
+
+```js
+import defaultTheme from 'tailwindcss/defaultTheme';
+import forms from '@tailwindcss/forms';
+
+/** @type {import('tailwindcss').Config} */
+export default {
+    content: [
+        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+        './storage/framework/views/*.php',
+        './resources/views/**/*.blade.php',
+    ],
+    theme: {
+        extend: {
+            fontFamily: {
+                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+            },
+        },
+    },
+    plugins: [forms],
+};
+```
+
+`postcss.config.js` を次の内容にします。
+
+```js
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
+
+`resources/css/app.css` に次の3行を記述します。
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+`resources/js/app.js` に Alpine.js の読み込みを記述します。
+
+```js
+import Alpine from 'alpinejs';
+
+window.Alpine = Alpine;
+
+Alpine.start();
+```
+
+レイアウトの Blade ファイル（`resources/views/components/app-layout.blade.php` など）の `<head>` 内に、Vite でビルドした CSS・JavaScript の読み込みを記述します。
+
+```blade
+@vite(['resources/css/app.css', 'resources/js/app.js'])
+```
+
+最後に、ビルドして反映を確認します。
+
+```bash
+./vendor/bin/sail npm run dev
+```
 
 ### 初期データ
 
