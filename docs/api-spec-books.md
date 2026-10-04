@@ -115,14 +115,14 @@ Authorization: Bearer {トークン}
 | URI | `/api/v1/books` |
 | 認証 | 不要 |
 
-キーワード検索（タイトル・著者名の部分一致）、ジャンルによる絞り込み、ページネーション（1ページ10件固定）に対応する。次のページは `page` を指定して再度リクエストする（`links.next` のURLを利用できる）。各書籍にジャンル情報・平均評価・レビュー件数を含める。並び順は登録日時の新しい順（同一秒の場合は ID の新しい順）。
+キーワード検索（タイトル・著者名の部分一致）、ジャンルによる絞り込み、ページネーション（1ページ20件固定）に対応する。次のページは `page` を指定して再度リクエストする（`links.next` のURLを利用できる）。各書籍にジャンル情報・平均評価・レビュー件数を含める。並び順は登録日時の新しい順（同一秒の場合は ID の新しい順）。
 
 ### リクエストパラメータ（クエリパラメータ）
 
 | 項目 | 型 | 必須 | 説明 | 例 |
 |---|---|---|---|---|
 | keyword | string | - | タイトル・著者名を部分一致で検索する | `"夏目"` |
-| genre | integer | - | ジャンルIDで絞り込む（存在するジャンルIDのみ） | `2` |
+| genre_id | integer | - | ジャンルIDで絞り込む（存在するジャンルIDのみ） | `2` |
 | page | integer | - | ページ番号（デフォルト: 1） | `2` |
 
 ### バリデーションエラーメッセージ
@@ -131,8 +131,8 @@ Authorization: Bearer {トークン}
 |---|---|---|
 | keyword | string | キーワードは文字列で指定してください |
 | keyword | max:255 | キーワードは255文字以内で指定してください |
-| genre | integer | ジャンルIDは整数で指定してください |
-| genre | exists:genres,id | 指定されたジャンルは存在しません |
+| genre_id | integer | ジャンルIDは整数で指定してください |
+| genre_id | exists:genres,id | 指定されたジャンルは存在しません |
 | page | integer | ページ番号は整数で指定してください |
 | page | min:1 | ページ番号は1以上の値で指定してください |
 
@@ -176,7 +176,7 @@ Authorization: Bearer {トークン}
 | 項目 | 型 | 必須 | 説明 | 例 |
 |---|---|---|---|---|
 | first | string | ○ | 最初のページのURL | `"http://localhost/api/v1/books?page=1"` |
-| last | string | ○ | 最後のページのURL | `"http://localhost/api/v1/books?page=5"` |
+| last | string | ○ | 最後のページのURL | `"http://localhost/api/v1/books?page=3"` |
 | prev | string \| null | - | 前のページのURL（1ページ目では null） | `null` |
 | next | string \| null | - | 次のページのURL（最終ページでは null） | `"http://localhost/api/v1/books?page=2"` |
 
@@ -186,11 +186,11 @@ Authorization: Bearer {トークン}
 |---|---|---|---|---|
 | current_page | integer | ○ | 現在のページ番号 | `1` |
 | from | integer \| null | - | このページの最初のデータの通し番号 | `1` |
-| last_page | integer | ○ | 最終ページ番号 | `5` |
+| last_page | integer | ○ | 最終ページ番号 | `3` |
 | links | array | ○ | ページ番号ごとのリンク情報の配列 | `[{"url":null,"label":"&laquo; Previous","active":false}, ...]` |
 | path | string | ○ | ページネーションのベースURL | `"http://localhost/api/v1/books"` |
-| per_page | integer | ○ | 1ページあたりの件数 | `10` |
-| to | integer \| null | - | このページの最後のデータの通し番号 | `9` |
+| per_page | integer | ○ | 1ページあたりの件数 | `20` |
+| to | integer \| null | - | このページの最後のデータの通し番号 | `20` |
 | total | integer | ○ | 全件数 | `42` |
 
 ### レスポンス例
@@ -216,20 +216,20 @@ Authorization: Bearer {トークン}
     ],
     "links": {
         "first": "http://localhost/api/v1/books?page=1",
-        "last": "http://localhost/api/v1/books?page=5",
+        "last": "http://localhost/api/v1/books?page=3",
         "prev": null,
         "next": "http://localhost/api/v1/books?page=2"
     },
     "meta": {
         "current_page": 1,
         "from": 1,
-        "last_page": 5,
+        "last_page": 3,
         "links": [
             { "url": null, "label": "&laquo; Previous", "active": false }
         ],
         "path": "http://localhost/api/v1/books",
-        "per_page": 10,
-        "to": 10,
+        "per_page": 20,
+        "to": 20,
         "total": 42
     }
 }
