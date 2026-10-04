@@ -129,7 +129,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-1-7 pageでページを移動できる(1ページ20件固定)
+     * 10-1-7 pageでページを移動できる(per_page未指定の場合は1ページ20件)
      */
     public function test_pagination_with_page(): void
     {
@@ -167,5 +167,47 @@ class BookApiIndexTest extends TestCase
         $this->getJson(self::URI.'?page=0')
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['page' => 'ページ番号は1以上の値で指定してください']);
+    }
+
+    /**
+     * 10-1-9 per_pageで1ページの件数を指定できる(1〜100件)
+     */
+    public function test_per_page_changes_number_of_books_per_page(): void
+    {
+        Book::factory()->count(101)->create();
+
+        // 最小値：1件
+        $min = $this->getJson(self::URI.'?per_page=1');
+        $min->assertOk();
+        $min->assertJsonCount(1, 'data');
+        $min->assertJsonPath('meta.per_page', 1);
+        $min->assertJsonPath('meta.last_page', 101);
+        // 次のページのURLにも per_page が引き継がれる
+        $this->assertStringContainsString('per_page=1', $min->json('links.next'));
+
+        // 最大値：100件
+        $max = $this->getJson(self::URI.'?per_page=100');
+        $max->assertOk();
+        $max->assertJsonCount(100, 'data');
+        $max->assertJsonPath('meta.per_page', 100);
+        $max->assertJsonPath('meta.last_page', 2);
+    }
+
+    /**
+     * 10-1-10 per_pageが1〜100の整数でない場合、422が返る
+     */
+    public function test_invalid_per_page_returns_422(): void
+    {
+        $this->getJson(self::URI.'?per_page=0')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page' => '1ページの件数は1以上の値で指定してください']);
+
+        $this->getJson(self::URI.'?per_page=101')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page' => '1ページの件数は100以下の値で指定してください']);
+
+        $this->getJson(self::URI.'?per_page=abc')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page' => '1ページの件数は整数で指定してください']);
     }
 }
