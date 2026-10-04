@@ -112,7 +112,7 @@ class ReadingPlanDeadlineTest extends TestCase
     /**
      * 18-1-7 一覧・編集画面を表示しても、期日を過ぎた「進行中」の計画のステータスは変更されない
      */
-    public function test_viewing_pages_does_not_expire_overdue_plans(): void
+    public function test_viewing_pages_does_not_expire_past_due_plans(): void
     {
         $user = User::factory()->create();
         $plan = ReadingPlan::factory()->for($user)->create([
@@ -188,5 +188,23 @@ class ReadingPlanDeadlineTest extends TestCase
         $this->assertSame(ReadingPlanStatus::Expired, $expiredPlan->status);
         $this->assertSame($originalDate, $expiredPlan->target_date->toDateString());
         $this->assertSame(1, ReadingPlan::where('book_id', $book->id)->where('status', 'in_progress')->count());
+    }
+
+    /**
+     * 18-1-12 他人が作成した読書計画に不正な期日で更新しようとしても、入力エラーではなく403になる
+     */
+    public function test_authorization_is_checked_before_validation_on_update(): void
+    {
+        $otherUser = User::factory()->create();
+        $plan = ReadingPlan::factory()->create(['target_date' => now()->addWeek()->toDateString()]);
+        $originalDate = $plan->target_date->toDateString();
+
+        $response = $this->actingAs($otherUser)->put(route('reading-plans.update', $plan), [
+            'target_date' => '',
+        ]);
+
+        $response->assertForbidden();
+        $response->assertSessionHasNoErrors();
+        $this->assertSame($originalDate, $plan->fresh()->target_date->toDateString());
     }
 }

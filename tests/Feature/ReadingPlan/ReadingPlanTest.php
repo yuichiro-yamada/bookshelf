@@ -393,4 +393,68 @@ class ReadingPlanTest extends TestCase
         $response->assertSessionHas('success', '「今日が期日の書籍」の読書計画を作成しました。');
         $this->assertDatabaseCount('reading_plans', 1);
     }
+
+    /**
+     * 17-1-21 同じ書籍に進行中の計画がある状態で不正な期日を指定しても、入力エラーではなく403になる
+     */
+    public function test_authorization_is_checked_before_validation_on_store(): void
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create();
+        ReadingPlan::factory()->for($user)->for($book)->create();
+
+        $response = $this->actingAs($user)->post(route('reading-plans.store'), [
+            'book_id' => $book->id,
+            'target_date' => '',
+        ]);
+
+        $response->assertForbidden();
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseCount('reading_plans', 1);
+    }
+
+    /**
+     * 17-1-22 ステータスが「期限切れ」の計画は、読了操作を行える
+     */
+    public function test_expired_plan_can_be_completed(): void
+    {
+        Carbon::setTestNow('2026-09-26 12:34:56');
+        $user = User::factory()->create();
+        $book = Book::factory()->create(['title' => '期限切れの書籍']);
+        $plan = ReadingPlan::factory()->for($user)->for($book)->expired()->create();
+
+        $response = $this->actingAs($user)->post(route('reading-plans.complete', $plan));
+
+        $response->assertRedirect(route('reading-plans.index'));
+        $response->assertSessionHas('success', '「期限切れの書籍」を読了しました。');
+        $plan->refresh();
+        $this->assertSame(ReadingPlanStatus::Completed, $plan->status);
+        $this->assertSame('2026-09-26 12:34:56', $plan->completed_at->format('Y-m-d H:i:s'));
+    }
+
+    /**
+     * 17-1-23 他のユーザーの「進行中」の計画は、自分の計画作成に影響しない
+     */
+    public function test_other_users_in_progress_plan_does_not_block_creation(): void
+    {
+        $user = User::factory()->create();
+        $book = Book::factory()->create(['title' => '他人が計画中の書籍']);
+        ReadingPlan::factory()->for(User::factory())->for($book)->create(); // 他のユーザーの進行中の計画
+
+        // 作成画面の選択肢に表示される
+        $this->actingAs($user)->get(route('reading-plans.create'))
+            ->assertOk()
+            ->assertViewHas('books', fn ($books) => $books->contains('id', $book->id))
+            ->assertSee('他人が計画中の書籍');
+
+        // 計画を作成できる
+        $response = $this->actingAs($user)->post(route('reading-plans.store'), [
+            'book_id' => $book->id,
+            'target_date' => now()->addWeek()->toDateString(),
+        ]);
+
+        $response->assertRedirect(route('reading-plans.index'));
+        $this->assertDatabaseHas('reading_plans', ['user_id' => $user->id, 'book_id' => $book->id, 'status' => 'in_progress']);
+        $this->assertSame(2, ReadingPlan::where('book_id', $book->id)->where('status', 'in_progress')->count());
+    }
 }

@@ -17,8 +17,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->date('target_date');
             $table->timestamp('completed_at')->nullable();
-            $table->enum('status', ['in_progress', 'completed', 'expired'])
-                ->default('in_progress');
+            // 値は ReadingPlanStatus Enum（in_progress / completed / expired）で管理し、モデルでキャストする
+            $table->string('status', 20)->default('in_progress');
             $table->timestamps();
 
             $table->index(['user_id', 'status']);

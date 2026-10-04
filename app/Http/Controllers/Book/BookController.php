@@ -7,6 +7,7 @@ use App\Http\Requests\Book\BookRequest;
 use App\Http\Requests\Book\SearchIsbnRequest;
 use App\Models\Book;
 use App\Models\Genre;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,15 +79,23 @@ class BookController extends Controller
 
     /**
      * ISBNからGoogle Books APIで書籍情報を取得する（Ajax用）
+     *
+     * Google Books API に接続できない・タイムアウトした場合は、Http::get が
+     * ConnectionException を投げる（$response->failed() では判定できない）。
+     * その場合も、APIがエラーを返した場合と同じく 502 を返す。
      */
     public function searchIsbn(SearchIsbnRequest $request, string $isbn): JsonResponse
     {
-        $response = Http::get(config('services.google_books.url'), [
-            'q' => 'isbn:'.$isbn,
-            'key' => config('services.google_books.key'),
-        ]);
+        try {
+            $response = Http::timeout(10)->get(config('services.google_books.url'), [
+                'q' => 'isbn:'.$isbn,
+                'key' => config('services.google_books.key'),
+            ]);
+        } catch (ConnectionException) {
+            $response = null;
+        }
 
-        if ($response->failed()) {
+        if ($response === null || $response->failed()) {
             return response()->json(['error' => '書籍情報の取得中にエラーが発生しました。'], 502);
         }
 

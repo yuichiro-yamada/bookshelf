@@ -121,4 +121,41 @@ class SortTest extends TestCase
             $this->titlesInOrder(['sort' => 'rating'])
         );
     }
+
+    /**
+     * 12-1-6 登録日時が同じ書籍は、IDの順に並ぶ(新しい順はIDの降順、古い順はIDの昇順)
+     */
+    public function test_books_with_same_created_at_are_ordered_by_id(): void
+    {
+        $sameTime = now()->startOfSecond();
+        Book::factory()->create(['title' => '1番目に登録', 'created_at' => $sameTime]);
+        Book::factory()->create(['title' => '2番目に登録', 'created_at' => $sameTime]);
+        Book::factory()->create(['title' => '3番目に登録', 'created_at' => $sameTime]);
+
+        $this->assertSame(
+            ['3番目に登録', '2番目に登録', '1番目に登録'],
+            $this->titlesInOrder(['sort' => 'latest'])
+        );
+        $this->assertSame(
+            ['1番目に登録', '2番目に登録', '3番目に登録'],
+            $this->titlesInOrder(['sort' => 'oldest'])
+        );
+    }
+
+    /**
+     * 12-1-7 sort=rating指定時、レビューがない書籍は最後に表示される
+     */
+    public function test_books_without_reviews_are_listed_last_in_rating_order(): void
+    {
+        Book::factory()->create(['title' => 'レビューなし・最新の書籍', 'created_at' => now()]);
+        $high = Book::factory()->create(['title' => '高評価の書籍', 'created_at' => now()->subDays(2)]);
+        $low = Book::factory()->create(['title' => '低評価の書籍', 'created_at' => now()->subDays(1)]);
+        Review::factory()->for($high)->create(['rating' => 5]);
+        Review::factory()->for($low)->create(['rating' => 1]);
+
+        $this->assertSame(
+            ['高評価の書籍', '低評価の書籍', 'レビューなし・最新の書籍'],
+            $this->titlesInOrder(['sort' => 'rating'])
+        );
+    }
 }

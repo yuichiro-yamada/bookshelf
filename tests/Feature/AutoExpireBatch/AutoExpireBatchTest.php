@@ -29,7 +29,7 @@ class AutoExpireBatchTest extends TestCase
     /**
      * 20-1-1 期日を過ぎた「進行中」の計画が「期限切れ」に更新される
      */
-    public function test_overdue_in_progress_plan_is_expired(): void
+    public function test_in_progress_plan_past_target_date_is_expired(): void
     {
         $plan = ReadingPlan::factory()->create(['target_date' => '2026-09-25']);
 

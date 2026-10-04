@@ -11,7 +11,7 @@ class ExpireReadingPlans extends Command
 {
     protected $signature = 'reading-plans:expire';
 
-    protected $description = '期日超過の読書計画のステータスを「期限切れ」に更新する';
+    protected $description = '期日を過ぎた進行中の読書計画のステータスを「期限切れ」に更新する';
 
     /**
      * 期日を過ぎた「進行中」の読書計画を「期限切れ」に更新する
@@ -20,7 +20,7 @@ class ExpireReadingPlans extends Command
     {
         $today = Carbon::today();
 
-        // 期日超過の「進行中」→「期限切れ」へ
+        // 期日を過ぎた「進行中」→「期限切れ」へ
         ReadingPlan::where('status', ReadingPlanStatus::InProgress->value)
             ->whereDate('target_date', '<', $today)
             ->update(['status' => ReadingPlanStatus::Expired->value]);

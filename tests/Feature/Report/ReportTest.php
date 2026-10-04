@@ -160,4 +160,33 @@ class ReportTest extends TestCase
         $response->assertSee('4星以上の書籍がありません');
         $response->assertSee('ジャンルが設定された書籍のレビューがありません');
     }
+
+    /**
+     * 15-1-7 ジャンル別評価傾向で、平均評価が同じジャンルはレビュー件数の多い順に表示される
+     */
+    public function test_genre_ratings_with_same_average_are_ordered_by_review_count(): void
+    {
+        $user = User::factory()->create();
+        // どちらも平均評価4.0。件数は「件数が少ない」=1件、「件数が多い」=3件
+        $ratingsByGenre = [
+            '件数が少ないジャンル' => [4],
+            '件数が多いジャンル' => [4, 4, 4],
+        ];
+        foreach ($ratingsByGenre as $name => $ratings) {
+            $genre = Genre::factory()->create(['name' => $name]);
+            foreach ($ratings as $rating) {
+                $this->review($user, $rating)->book->genres()->attach($genre);
+            }
+        }
+
+        $response = $this->actingAs($user)->get(route('reports.index'));
+
+        $expected = ['件数が多いジャンル', '件数が少ないジャンル'];
+        $response->assertOk();
+        $response->assertViewHas('stats', function (array $stats) use ($expected) {
+            return $stats['genre_ratings']->pluck('name')->all() === $expected
+                && $stats['genre_ratings']->pluck('count')->all() === [3, 1];
+        });
+        $response->assertSeeInOrder($expected);
+    }
 }

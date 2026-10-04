@@ -17,8 +17,7 @@ class ReviewController extends Controller
      */
     public function store(ReviewRequest $request, Book $book): RedirectResponse
     {
-        $this->authorize('create', [Review::class, $book]);
-
+        // 認可（ReviewPolicy::create）はReviewRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book->reviews()->create([
@@ -61,8 +60,7 @@ class ReviewController extends Controller
      */
     public function update(ReviewRequest $request, Review $review): RedirectResponse
     {
-        $this->authorize('update', $review);
-
+        // 認可（ReviewPolicy::update）はReviewRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $review->update([

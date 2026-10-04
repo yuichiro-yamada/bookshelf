@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 書籍削除APIのテスト（テストケース一覧 10-6「書籍削除API(DELETE /api/v1/books/{book})」に対応）
+ * 書籍削除APIのテスト（テストケース一覧 10-5「AP05:書籍削除API(DELETE /api/v1/books/{book})」に対応）
  */
 class BookApiDestroyTest extends TestCase
 {
@@ -22,7 +22,7 @@ class BookApiDestroyTest extends TestCase
     }
 
     /**
-     * 10-6-1 認証なしでアクセスすると401が返る
+     * 10-5-1 認証なしでアクセスすると401が返る
      */
     public function test_unauthenticated_request_returns_401(): void
     {
@@ -36,7 +36,7 @@ class BookApiDestroyTest extends TestCase
     }
 
     /**
-     * 10-6-2 自分が登録した書籍を削除できる
+     * 10-5-2 自分が登録した書籍を削除できる
      */
     public function test_owner_can_delete_book(): void
     {
@@ -51,7 +51,7 @@ class BookApiDestroyTest extends TestCase
     }
 
     /**
-     * 10-6-3 書籍を削除すると、関連するデータも一緒に削除される
+     * 10-5-3 書籍を削除すると、関連するデータも一緒に削除される
      */
     public function test_related_data_is_deleted_together(): void
     {
@@ -77,7 +77,7 @@ class BookApiDestroyTest extends TestCase
     }
 
     /**
-     * 10-6-4 他のユーザーが登録した書籍は削除できない
+     * 10-5-4 他のユーザーが登録した書籍は削除できない
      */
     public function test_other_user_cannot_delete_book(): void
     {
@@ -92,7 +92,7 @@ class BookApiDestroyTest extends TestCase
     }
 
     /**
-     * 10-6-5 存在しないIDを指定すると404が返る
+     * 10-5-5 存在しないIDを指定すると404が返る
      */
     public function test_non_existent_book_returns_404(): void
     {

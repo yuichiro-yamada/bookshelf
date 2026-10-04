@@ -1,8 +1,19 @@
 # 書籍API仕様書
 
-対象: Bookshelfアプリ 公開API `/api/v1/books`
+対象: Bookshelfアプリ 公開API `/api/v1/books`（書籍の取得・登録・更新・削除）
 
-このドキュメントは、実装したコード（`app/Http/Controllers/Api/V1/Book/BookController.php` など）をもとに作成したサンプルです。レビュー用の資料として使う場合は、実際のプロジェクトの命名規則やフォーマットに合わせて調整してください。
+実装（`app/Http/Controllers/Api/V1/Book/BookController.php`・`app/Http/Resources/Api/V1/`・`routes/api.php` など）に基づく仕様です。
+
+### 要件との対応
+
+| 要件 | エンドポイント | 本書の章 |
+|---|---|---|
+| AP01:書籍一覧API | `GET /api/v1/books` | 1. 書籍一覧を取得する |
+| AP02:書籍詳細API | `GET /api/v1/books/{book}` | 2. 書籍詳細を取得する |
+| AP03:書籍登録API | `POST /api/v1/books` | 3. 書籍を新規登録する |
+| AP04:書籍更新API | `PUT /api/v1/books/{book}` | 4. 書籍を更新する |
+| AP05:書籍削除API | `DELETE /api/v1/books/{book}` | 5. 書籍を削除する |
+| ★AP06:SanctumAPIトークン認証（応用） | 書き込み系（AP03・AP04・AP05） | 共通仕様「認証方式」、各章の認証・エラーレスポンス |
 
 ## 共通仕様
 
@@ -12,7 +23,7 @@
 http://localhost/api/v1
 ```
 
-### 認証方式
+### 認証方式（★AP06:SanctumAPIトークン認証）
 
 - Laravel Sanctumによるトークン認証（Bearer Token）
 - 書き込み系（登録・更新・削除）のみ認証が必要（一覧・詳細取得は認証不要）
@@ -94,7 +105,7 @@ Authorization: Bearer {トークン}
 
 ---
 
-## 1. 書籍一覧を取得する
+## 1. 書籍一覧を取得する（AP01:書籍一覧API）
 
 ### エンドポイント
 
@@ -104,7 +115,7 @@ Authorization: Bearer {トークン}
 | URI | `/api/v1/books` |
 | 認証 | 不要 |
 
-キーワード検索（タイトル・著者名の部分一致）、ジャンルによる絞り込み、ページネーションに対応する。各書籍にジャンル情報・平均評価・レビュー件数を含める。並び順は登録日時の新しい順（同一秒の場合は ID の新しい順）。
+キーワード検索（タイトル・著者名の部分一致）、ジャンルによる絞り込み、ページネーション（1ページ10件固定）に対応する。次のページは `page` を指定して再度リクエストする（`links.next` のURLを利用できる）。各書籍にジャンル情報・平均評価・レビュー件数を含める。並び順は登録日時の新しい順（同一秒の場合は ID の新しい順）。
 
 ### リクエストパラメータ（クエリパラメータ）
 
@@ -113,7 +124,6 @@ Authorization: Bearer {トークン}
 | keyword | string | - | タイトル・著者名を部分一致で検索する | `"夏目"` |
 | genre | integer | - | ジャンルIDで絞り込む（存在するジャンルIDのみ） | `2` |
 | page | integer | - | ページ番号（デフォルト: 1） | `2` |
-| per_page | integer | - | 1ページあたりの件数（デフォルト: 10、最大: 100） | `20` |
 
 ### バリデーションエラーメッセージ
 
@@ -125,9 +135,6 @@ Authorization: Bearer {トークン}
 | genre | exists:genres,id | 指定されたジャンルは存在しません |
 | page | integer | ページ番号は整数で指定してください |
 | page | min:1 | ページ番号は1以上の値で指定してください |
-| per_page | integer | 取得件数は整数で指定してください |
-| per_page | min:1 | 取得件数は1以上の値で指定してください |
-| per_page | max:100 | 取得件数は100以下の値で指定してください |
 
 ### レスポンス（200 OK）
 
@@ -230,7 +237,7 @@ Authorization: Bearer {トークン}
 
 ---
 
-## 2. 書籍詳細を取得する
+## 2. 書籍詳細を取得する（AP02:書籍詳細API）
 
 ### エンドポイント
 
@@ -320,7 +327,7 @@ Authorization: Bearer {トークン}
 
 ---
 
-## 3. 書籍を新規登録する
+## 3. 書籍を新規登録する（AP03:書籍登録API）
 
 ### エンドポイント
 
@@ -397,7 +404,7 @@ Authorization: Bearer {トークン}
 
 ---
 
-## 4. 書籍を更新する
+## 4. 書籍を更新する（AP04:書籍更新API）
 
 ### エンドポイント
 
@@ -434,7 +441,7 @@ Authorization: Bearer {トークン}
 
 ---
 
-## 5. 書籍を削除する
+## 5. 書籍を削除する（AP05:書籍削除API）
 
 ### エンドポイント
 
@@ -444,7 +451,7 @@ Authorization: Bearer {トークン}
 | URI | `/api/v1/books/{book}` |
 | 認証 | 必要（Sanctumトークン、かつ書籍の登録者本人のみ） |
 
-書籍の削除にあわせて、関連するジャンルの紐付け（book_genre）・レビュー（reviews）・お気に入り（favorites）・レビューへのいいね（review_likes）も削除される。
+書籍の削除にあわせて、関連するジャンルの紐付け（book_genre）・レビュー（reviews）・お気に入り（favorites）・レビューへのいいね（review_likes）・読書計画（reading_plans）も削除される（データベースの連鎖削除）。読書計画に紐づくリマインダー通知（notifications）は削除されない。
 
 ### パスパラメータ
 
