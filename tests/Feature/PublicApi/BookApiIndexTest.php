@@ -111,7 +111,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-1-6 genreでジャンルIDによる絞り込みができる
+     * 10-1-6 genre_idでジャンルIDによる絞り込みができる
      */
     public function test_genre_filters_books_by_genre_id(): void
     {
@@ -122,27 +122,27 @@ class BookApiIndexTest extends TestCase
         $sfBook = Book::factory()->create();
         $sfBook->genres()->attach($sf);
 
-        $response = $this->getJson(self::URI.'?genre='.$mystery->id);
+        $response = $this->getJson(self::URI.'?genre_id='.$mystery->id);
 
         $response->assertOk();
         $this->assertSame([$mysteryBook->id], array_column($response->json('data'), 'id'));
     }
 
     /**
-     * 10-1-7 pageでページを移動できる(1ページ10件固定)
+     * 10-1-7 pageでページを移動できる(per_page未指定の場合は1ページ20件)
      */
     public function test_pagination_with_page(): void
     {
-        Book::factory()->count(11)->create();
+        Book::factory()->count(21)->create();
 
-        // page 指定なし：1ページ目（10件）
+        // page 指定なし：1ページ目（20件）
         $first = $this->getJson(self::URI);
         $first->assertOk();
-        $first->assertJsonCount(10, 'data');
-        $first->assertJsonPath('meta.per_page', 10);
+        $first->assertJsonCount(20, 'data');
+        $first->assertJsonPath('meta.per_page', 20);
         $first->assertJsonPath('meta.current_page', 1);
         $first->assertJsonPath('meta.last_page', 2);
-        $first->assertJsonPath('meta.total', 11);
+        $first->assertJsonPath('meta.total', 21);
         $this->assertNull($first->json('links.prev'));
         $this->assertStringContainsString('page=2', $first->json('links.next'));
 
@@ -160,12 +160,54 @@ class BookApiIndexTest extends TestCase
      */
     public function test_invalid_query_parameters_return_422(): void
     {
-        $this->getJson(self::URI.'?genre=999')
+        $this->getJson(self::URI.'?genre_id=999')
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['genre' => '指定されたジャンルは存在しません']);
+            ->assertJsonValidationErrors(['genre_id' => '指定されたジャンルは存在しません']);
 
         $this->getJson(self::URI.'?page=0')
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['page' => 'ページ番号は1以上の値で指定してください']);
+    }
+
+    /**
+     * 10-1-9 per_pageで1ページの件数を指定できる(1〜100件)
+     */
+    public function test_per_page_changes_number_of_books_per_page(): void
+    {
+        Book::factory()->count(101)->create();
+
+        // 最小値：1件
+        $min = $this->getJson(self::URI.'?per_page=1');
+        $min->assertOk();
+        $min->assertJsonCount(1, 'data');
+        $min->assertJsonPath('meta.per_page', 1);
+        $min->assertJsonPath('meta.last_page', 101);
+        // 次のページのURLにも per_page が引き継がれる
+        $this->assertStringContainsString('per_page=1', $min->json('links.next'));
+
+        // 最大値：100件
+        $max = $this->getJson(self::URI.'?per_page=100');
+        $max->assertOk();
+        $max->assertJsonCount(100, 'data');
+        $max->assertJsonPath('meta.per_page', 100);
+        $max->assertJsonPath('meta.last_page', 2);
+    }
+
+    /**
+     * 10-1-10 per_pageが1〜100の整数でない場合、422が返る
+     */
+    public function test_invalid_per_page_returns_422(): void
+    {
+        $this->getJson(self::URI.'?per_page=0')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page' => '1ページの件数は1以上の値で指定してください']);
+
+        $this->getJson(self::URI.'?per_page=101')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page' => '1ページの件数は100以下の値で指定してください']);
+
+        $this->getJson(self::URI.'?per_page=abc')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page' => '1ページの件数は整数で指定してください']);
     }
 }
