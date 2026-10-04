@@ -89,7 +89,13 @@ docker run --rm \
     composer install --ignore-platform-reqs
 ```
 
-完了すると `vendor` ディレクトリが作成され、`./vendor/bin/sail` コマンドが使えるようになります。
+完了すると `vendor` ディレクトリが作成され、`./vendor/bin/sail` コマンドが使えるようになります。次のコマンドでファイルが表示されれば成功です（`No such file or directory` と表示される場合は、エラーが出ていないか確認して、上のコマンドをもう一度実行してください）。
+
+```bash
+ls vendor/autoload.php
+```
+
+> この手順が完了する前に、次の手順4（コンテナの起動）を実行しないでください。`vendor` がない状態でコンテナを起動すると、コンテナ内のアプリケーションサーバーが起動に失敗したまま停止します。
 
 #### 3. 環境変数ファイル（.env）を作成する
 
@@ -133,6 +139,8 @@ GOOGLE_BOOKS_API_URL=https://www.googleapis.com/books/v1/volumes
 
 > ポート 80・3306・8080 を他のアプリが使っている場合は起動に失敗します。その場合は `.env` に `APP_PORT=8000`・`FORWARD_DB_PORT=3307`・`FORWARD_PHPMYADMIN_PORT=8081` のように空いているポートを指定してから、もう一度起動してください。
 
+> 手順2の `composer install` が完了する前にコンテナを起動した場合、コンテナは `Up` と表示されていても、アプリケーションサーバーが停止しています（`curl -I http://localhost` を実行すると `Connection reset by peer` になる、ブラウザでページが表示されない）。その場合は、`vendor/autoload.php` があることを確認してから、`./vendor/bin/sail down` → `./vendor/bin/sail up -d` でコンテナを起動し直してください。
+
 #### 5. アプリケーションキーを生成し、データベースを作成する
 
 ```bash
@@ -161,6 +169,8 @@ GOOGLE_BOOKS_API_URL=https://www.googleapis.com/books/v1/volumes
 ./vendor/bin/sail npm run dev
 ```
 
+> `npm run dev` の実行中は、`public/hot` というファイルが作られ、CSS・JavaScript を開発サーバー（ポート 5173）から読み込みます。`Ctrl + C` で止めると `public/hot` は自動で削除されますが、`./vendor/bin/sail down` などで開発サーバーごと停止した場合は `public/hot` が残り、停止中の開発サーバーを参照するため **CSS が当たらない画面になります**。その場合は `rm public/hot` を実行する（ビルド済みのファイルが使われる）か、`./vendor/bin/sail npm run dev` を起動し直してください。
+
 #### 7. ブラウザで確認する
 
 | 用途 | URL |
@@ -179,6 +189,8 @@ GOOGLE_BOOKS_API_URL=https://www.googleapis.com/books/v1/volumes
 # 2回目以降の起動（手順2・3・5・6 は不要）
 ./vendor/bin/sail up -d
 ```
+
+> `npm run dev` を実行したまま `sail down` で停止した場合は、再起動後に CSS が当たらないことがあります（手順6の注意書きを参照。`rm public/hot` で解消します）。
 
 > 毎回 `./vendor/bin/sail` と入力するのが手間な場合は、`alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'` をシェルの設定ファイル（`~/.zshrc` など）に追加すると、`sail up -d` のように短く実行できます。
 
