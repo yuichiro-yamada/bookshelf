@@ -10,14 +10,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 書籍詳細取得APIのテスト（テストケース一覧 10-3「書籍詳細取得API(GET /api/v1/books/{book})」に対応）
+ * 書籍詳細取得APIのテスト（テストケース一覧 10-2「AP02:書籍詳細API(GET /api/v1/books/{book})」に対応）
  */
 class BookApiShowTest extends TestCase
 {
     use RefreshDatabase;
 
     /**
-     * 10-3-1 認証なしでもアクセスでき、書籍の詳細が返る
+     * 10-2-1 認証なしでもアクセスでき、書籍の詳細が返る
      */
     public function test_guest_can_get_book_detail(): void
     {
@@ -46,7 +46,7 @@ class BookApiShowTest extends TestCase
     }
 
     /**
-     * 10-3-2 レビュー(投稿者名・評価・コメント・投稿日時)が新しい順に含まれる
+     * 10-2-2 レビュー(投稿者名・評価・コメント・投稿日時)が新しい順に含まれる
      */
     public function test_reviews_are_included_in_newest_order(): void
     {
@@ -76,7 +76,7 @@ class BookApiShowTest extends TestCase
     }
 
     /**
-     * 10-3-3 存在しないIDを指定すると404が返る
+     * 10-2-3 存在しないIDを指定すると404が返る
      */
     public function test_non_existent_book_returns_404(): void
     {

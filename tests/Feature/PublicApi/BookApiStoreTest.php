@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 書籍登録APIのテスト（テストケース一覧 10-4「書籍登録API(POST /api/v1/books)」に対応）
+ * 書籍登録APIのテスト（テストケース一覧 10-3「AP03:書籍登録API(POST /api/v1/books)」に対応）
  */
 class BookApiStoreTest extends TestCase
 {
@@ -44,7 +44,7 @@ class BookApiStoreTest extends TestCase
     }
 
     /**
-     * 10-4-1 認証なしでアクセスすると401が返る
+     * 10-3-1 認証なしでアクセスすると401が返る
      */
     public function test_unauthenticated_request_returns_401(): void
     {
@@ -56,7 +56,7 @@ class BookApiStoreTest extends TestCase
     }
 
     /**
-     * 10-4-2 有効なトークンで書籍を登録できる
+     * 10-3-2 有効なトークンで書籍を登録できる
      */
     public function test_book_can_be_created_with_valid_token(): void
     {
@@ -80,7 +80,7 @@ class BookApiStoreTest extends TestCase
     }
 
     /**
-     * 10-4-3 登録者(user_id)は、リクエストの値ではなく認証ユーザーになる
+     * 10-3-3 登録者(user_id)は、リクエストの値ではなく認証ユーザーになる
      */
     public function test_user_id_is_set_to_authenticated_user(): void
     {
@@ -96,7 +96,7 @@ class BookApiStoreTest extends TestCase
     }
 
     /**
-     * 10-4-4 選択したジャンルが書籍に紐づけられる
+     * 10-3-4 選択したジャンルが書籍に紐づけられる
      */
     public function test_selected_genres_are_attached(): void
     {
@@ -118,7 +118,7 @@ class BookApiStoreTest extends TestCase
     }
 
     /**
-     * 10-4-5 必須項目(title・author・genres)が未入力の場合、422が返る
+     * 10-3-5 必須項目(title・author・genres)が未入力の場合、422が返る
      */
     public function test_required_fields_missing_returns_422(): void
     {
@@ -138,7 +138,7 @@ class BookApiStoreTest extends TestCase
     }
 
     /**
-     * 10-4-6 ISBNが13桁の数字でない、または登録済みの場合、422が返る
+     * 10-3-6 ISBNが13桁の数字でない、または登録済みの場合、422が返る
      */
     public function test_invalid_or_duplicate_isbn_returns_422(): void
     {
@@ -161,7 +161,7 @@ class BookApiStoreTest extends TestCase
     }
 
     /**
-     * 10-4-7 存在しないジャンルIDを指定すると422が返る
+     * 10-3-7 存在しないジャンルIDを指定すると422が返る
      */
     public function test_non_existent_genre_returns_422(): void
     {

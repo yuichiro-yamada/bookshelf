@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 書籍一覧取得APIのテスト（テストケース一覧 10-2「書籍一覧取得API(GET /api/v1/books)」に対応）
+ * 書籍一覧取得APIのテスト（テストケース一覧 10-1「AP01:書籍一覧API(GET /api/v1/books)」に対応）
  */
 class BookApiIndexTest extends TestCase
 {
@@ -18,7 +18,7 @@ class BookApiIndexTest extends TestCase
     private const URI = '/api/v1/books';
 
     /**
-     * 10-2-1 認証なしでもアクセスでき、書籍一覧が返る
+     * 10-1-1 認証なしでもアクセスでき、書籍一覧が返る
      */
     public function test_guest_can_get_book_list(): void
     {
@@ -38,7 +38,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-2 各書籍にジャンル・平均評価・レビュー件数が含まれる
+     * 10-1-2 各書籍にジャンル・平均評価・レビュー件数が含まれる
      */
     public function test_each_book_contains_genres_average_rating_and_review_count(): void
     {
@@ -58,7 +58,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-3 レビューが無い書籍はaverage_ratingがnull、review_countが0になる
+     * 10-1-3 レビューが無い書籍はaverage_ratingがnull、review_countが0になる
      */
     public function test_book_without_reviews_has_null_average_and_zero_count(): void
     {
@@ -72,7 +72,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-4 新しい順(登録日時の降順、同一なら idの降順)で返る
+     * 10-1-4 新しい順(登録日時の降順、同一なら idの降順)で返る
      */
     public function test_books_are_returned_in_newest_order(): void
     {
@@ -93,7 +93,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-5 keywordでタイトル・著者名の部分一致検索ができる
+     * 10-1-5 keywordでタイトル・著者名の部分一致検索ができる
      */
     public function test_keyword_searches_title_and_author(): void
     {
@@ -111,7 +111,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-6 genreでジャンルIDによる絞り込みができる
+     * 10-1-6 genreでジャンルIDによる絞り込みができる
      */
     public function test_genre_filters_books_by_genre_id(): void
     {
@@ -129,7 +129,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-7 pageでページを移動できる(1ページ10件固定)
+     * 10-1-7 pageでページを移動できる(1ページ10件固定)
      */
     public function test_pagination_with_page(): void
     {
@@ -156,7 +156,7 @@ class BookApiIndexTest extends TestCase
     }
 
     /**
-     * 10-2-8 不正なクエリパラメータを指定すると422が返る
+     * 10-1-8 不正なクエリパラメータを指定すると422が返る
      */
     public function test_invalid_query_parameters_return_422(): void
     {

@@ -9,7 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 書籍更新APIのテスト（テストケース一覧 10-5「書籍更新API(PUT /api/v1/books/{book})」に対応）
+ * 書籍更新APIのテスト（テストケース一覧 10-4「AP04:書籍更新API(PUT /api/v1/books/{book})」に対応）
  */
 class BookApiUpdateTest extends TestCase
 {
@@ -39,7 +39,7 @@ class BookApiUpdateTest extends TestCase
     }
 
     /**
-     * 10-5-1 認証なしでアクセスすると401が返る
+     * 10-4-1 認証なしでアクセスすると401が返る
      */
     public function test_unauthenticated_request_returns_401(): void
     {
@@ -53,7 +53,7 @@ class BookApiUpdateTest extends TestCase
     }
 
     /**
-     * 10-5-2 自分が登録した書籍を更新できる
+     * 10-4-2 自分が登録した書籍を更新できる
      */
     public function test_owner_can_update_book(): void
     {
@@ -81,7 +81,7 @@ class BookApiUpdateTest extends TestCase
     }
 
     /**
-     * 10-5-3 自分の書籍のISBNを変更せずに更新しても、ISBNの重複エラーにならない
+     * 10-4-3 自分の書籍のISBNを変更せずに更新しても、ISBNの重複エラーにならない
      */
     public function test_updating_without_changing_own_isbn_is_allowed(): void
     {
@@ -96,7 +96,7 @@ class BookApiUpdateTest extends TestCase
     }
 
     /**
-     * 10-5-4 他のユーザーが登録した書籍は更新できない
+     * 10-4-4 他のユーザーが登録した書籍は更新できない
      */
     public function test_other_user_cannot_update_book(): void
     {
@@ -112,7 +112,7 @@ class BookApiUpdateTest extends TestCase
     }
 
     /**
-     * 10-5-5 存在しないIDを指定すると404が返る
+     * 10-4-5 存在しないIDを指定すると404が返る
      */
     public function test_non_existent_book_returns_404(): void
     {
@@ -126,7 +126,7 @@ class BookApiUpdateTest extends TestCase
     }
 
     /**
-     * 10-5-6 入力内容が不正な場合、422が返る
+     * 10-4-6 入力内容が不正な場合、422が返る
      */
     public function test_invalid_input_returns_422(): void
     {
@@ -142,7 +142,7 @@ class BookApiUpdateTest extends TestCase
     }
 
     /**
-     * 10-5-7 他のユーザーが登録した書籍に対して不正な入力で更新しようとしても、422ではなく403が返る
+     * 10-4-7 他のユーザーが登録した書籍に対して不正な入力で更新しようとしても、422ではなく403が返る
      */
     public function test_authorization_is_checked_before_validation(): void
     {

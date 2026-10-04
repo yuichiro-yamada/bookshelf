@@ -144,19 +144,21 @@ Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必�
 
 すべてのエンドポイントで、リクエストヘッダーに `Accept: application/json` を付与してください（付与しない場合、エラー時にJSONではなくHTMLやリダイレクトが返ります）。詳細は [docs/api-spec-books.md](docs/api-spec-books.md) を参照してください。
 
-| メソッド | パス | 概要 | 認証 |
-|---|---|---|---|
-| GET | `/api/v1/books` | 書籍一覧の取得（キーワード検索・ジャンル絞り込み・ページネーション） | 不要 |
-| GET | `/api/v1/books/{book}` | 書籍詳細の取得（ジャンル・レビュー一覧を含む） | 不要 |
-| POST | `/api/v1/books` | 書籍の新規登録 | 必要 |
-| PUT | `/api/v1/books/{book}` | 書籍の更新（登録者本人のみ） | 必要 |
-| DELETE | `/api/v1/books/{book}` | 書籍の削除（登録者本人のみ） | 必要 |
+| 要件 | メソッド | パス | 概要 | 認証 |
+|---|---|---|---|---|
+| AP01:書籍一覧API | GET | `/api/v1/books` | 書籍一覧の取得（キーワード検索・ジャンル絞り込み・ページネーション） | 不要 |
+| AP02:書籍詳細API | GET | `/api/v1/books/{book}` | 書籍詳細の取得（ジャンル・レビュー一覧を含む） | 不要 |
+| AP03:書籍登録API | POST | `/api/v1/books` | 書籍の新規登録 | 必要 |
+| AP04:書籍更新API | PUT | `/api/v1/books/{book}` | 書籍の更新（登録者本人のみ） | 必要 |
+| AP05:書籍削除API | DELETE | `/api/v1/books/{book}` | 書籍の削除（登録者本人のみ） | 必要 |
+
+書き込み系（AP03〜AP05）の認証・認可は「★AP06:SanctumAPIトークン認証（応用）」として実装しています（未認証は 401、他人の書籍の更新・削除は 403）。
 
 トークン発行用のエンドポイントは用意していません。動作確認用のトークンは tinker で発行します。
 
 ```bash
 ./vendor/bin/sail artisan tinker
->>> App\Models\User::find(1)->createToken('test')->plainTextToken
+App\Models\User::find(1)->createToken('test')->plainTextToken
 ```
 
 ## テスト
@@ -194,7 +196,7 @@ Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必�
 |---|---|
 | `ルート・コントローラー仕様書.xlsx` | 全ルートの画面名称・パス・メソッド・コントローラー・アクション・認証要否・処理内容 |
 | `バリデーション仕様書.xlsx` | FormRequest ごとのバリデーションルール・エラーメッセージ・利用箇所 |
-| `認可仕様書.xlsx` | ポリシー（BookPolicy・ReviewPolicy・ReadingPlanPolicy）ごとの認可ルール・利用箇所・拒否時の挙動 |
+| `認可仕様書.xlsx` | ポリシー（BookPolicy・ReviewPolicy・ReadingPlanPolicy）ごとの認可ルール・利用箇所・拒否時の挙動（ポリシーを使わない「いいね」・通知の既読化を含む） |
 | `バッチ・通知仕様書.xlsx` | 日次バッチ（コマンド・処理順・実行方法）、通知の種類と送信条件、通知データの項目、表示・既読・削除のルール |
 
 ### API
@@ -202,6 +204,7 @@ Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必�
 | ファイル | 内容 |
 |---|---|
 | [docs/api-spec-books.md](docs/api-spec-books.md) | 書籍API仕様書（リクエスト・レスポンスのJSON例を含むため Markdown で作成） |
+| `外部API連携仕様書.xlsx` | Google Books API（ISBN検索）との連携方法：設定・リクエスト・レスポンスから取り出す項目・エラー時の処理 |
 
 ### テスト
 
@@ -281,6 +284,7 @@ Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必�
 - API は、すべてのエンドポイントでリクエストヘッダーに `Accept: application/json` を付与する前提とし、付与しない場合までJSONレスポンスを保証する専用のミドルウェアは追加しない。
 - トークン発行用のエンドポイントは作成しない（Sanctum によるBearerトークン認証への対応まで。テストでは `$user->createToken()` でトークンを発行して認証する）。
 - Laravel 標準のテーブルのうち、`password_reset_tokens`（パスワードリセット）と `failed_jobs`（キューで失敗したジョブ）は、本アプリでは該当機能を使っていないため未使用。マイグレーションは Laravel 標準のまま残している。`personal_access_tokens` は公開APIの Sanctum トークン認証で使用する。
+- `routes/api.php` の `GET /api/user`（ログインユーザー情報の取得）も Laravel 標準のルートで、本アプリでは使用していない（テストの対象外）が、Laravel 標準のまま残している。
 - テストカバレッジが0%の Laravel 標準ファイル（`TrustHosts`・`BroadcastServiceProvider` など）は削除せずに残している。
 
 ## 既知の課題（未対応）
