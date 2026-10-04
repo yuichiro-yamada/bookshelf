@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Http\Resources\Api\V1\Genre;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class GenreResource extends JsonResource
+{
+    /**
+     * リソースを配列に変換する
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+        ];
+    }
+}

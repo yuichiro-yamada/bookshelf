@@ -95,7 +95,7 @@
                                             <p class="text-sm font-semibold text-gray-900 truncate">{{ $notification->data['title'] ?? '通知' }}</p>
                                         </div>
                                         <p class="mt-1 text-sm text-gray-600">{{ $notification->data['body'] ?? '' }}</p>
-                                        <p class="mt-2 text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                        <p class="mt-2 text-xs text-gray-400">{{ $notification->created_at->locale('ja')->diffForHumans() }}</p>
                                     </div>
 
                                     {{-- Action --}}

@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers\Book;
 
-use Illuminate\Support\Facades\Http;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Book\BookRequest;
 use App\Http\Requests\Book\SearchIsbnRequest;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Book;
 use App\Models\Genre;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\View\View;
 
 class BookController extends Controller
 {
@@ -22,38 +24,29 @@ class BookController extends Controller
      */
     public function index(Request $request): View
     {
-        $keyword = trim((string) $request->input('keyword', ''));
+        $keyword = $request->input('keyword', '');
         $genreId = $request->input('genre');
-        $sort = $request->input('sort', 'newest');
+        $sort = $request->input('sort', 'latest');
 
+        // キーワード検索・ジャンル絞り込みは、API用コントローラー（Api\V1\Book\BookController）
+        // と共通のロジックを Book モデルのローカルスコープ（searchKeyword・filterByGenre）に
+        // 切り出して使っている。
         $query = Book::with('genres')
-            ->withAvg('reviews', 'rating');
-
-        if ($keyword !== '') {
-            $escaped = addcslashes($keyword, '%_\\');
-
-            $query->where(function ($q) use ($escaped) {
-                $q->where('title', 'like', "%{$escaped}%")
-                    ->orWhere('author', 'like', "%{$escaped}%");
-            });
-        }
-
-        if (filled($genreId)) {
-            $query->whereHas('genres', function ($q) use ($genreId) {
-                $q->where('genres.id', $genreId);
-            });
-        }
+            ->withAvg('reviews', 'rating')
+            ->searchKeyword($keyword)
+            ->filterByGenre($genreId);
 
         // created_at は同一秒内にまとめて登録されたデータだと値が重複しうるため、
         // id を第2キーにして並び順を一意に確定させる（id は登録順と一致する）。
         match ($sort) {
             'oldest' => $query->oldest()->oldest('id'),
-            'rating' => $query->orderByDesc('reviews_avg_rating')->latest()->latest('id'),
             'title' => $query->orderBy('title')->orderBy('id'),
+            'rating' => $query->orderByDesc('reviews_avg_rating')->latest()->latest('id'),
+            'latest' => $query->latest()->latest('id'),
             default => $query->latest()->latest('id'),
         };
 
-        $books = $query->paginate(9)->withQueryString();
+        $books = $query->paginate(10)->withQueryString();
 
         $genres = Genre::orderBy('name')->get();
 
@@ -67,7 +60,7 @@ class BookController extends Controller
      */
     public function show(Book $book): View
     {
-        $book->load(['genres', 'user', 'reviews.user', 'reviews.likedByUsers']);
+        $book->load(['genres', 'reviews.user', 'reviews.likedByUsers']);
 
         $hasReviewed = Auth::check() && $book->reviews->contains('user_id', Auth::id());
 
@@ -79,22 +72,30 @@ class BookController extends Controller
      */
     public function create(): View
     {
-        $genres = Genre::all(); 
+        $genres = Genre::all();
 
         return view('books.create', compact('genres'));
     }
 
     /**
      * ISBNからGoogle Books APIで書籍情報を取得する（Ajax用）
+     *
+     * Google Books API に接続できない・タイムアウトした場合は、Http::get が
+     * ConnectionException を投げる（$response->failed() では判定できない）。
+     * その場合も、APIがエラーを返した場合と同じく 502 を返す。
      */
-    public function searchIsbn(SearchIsbnRequest $request, string $isbn): \Illuminate\Http\JsonResponse
+    public function searchIsbn(SearchIsbnRequest $request, string $isbn): JsonResponse
     {
-        $response = Http::get('https://www.googleapis.com/books/v1/volumes', [
-            'q' => 'isbn:' . $isbn,
-            'key' => config('services.google_books.key'),
-        ]);
+        try {
+            $response = Http::timeout(10)->get(config('services.google_books.url'), [
+                'q' => 'isbn:'.$isbn,
+                'key' => config('services.google_books.key'),
+            ]);
+        } catch (ConnectionException) {
+            $response = null;
+        }
 
-        if ($response->failed()) {
+        if ($response === null || $response->failed()) {
             return response()->json(['error' => '書籍情報の取得中にエラーが発生しました。'], 502);
         }
 
@@ -102,12 +103,13 @@ class BookController extends Controller
 
         $matched = collect($items)->first(function ($item) use ($isbn) {
             $identifiers = $item['volumeInfo']['industryIdentifiers'] ?? [];
+
             return collect($identifiers)->contains(
                 fn ($id) => ($id['identifier'] ?? null) === $isbn
             );
         });
 
-        if (!$matched) {
+        if (! $matched) {
             return response()->json(['error' => '該当する書籍が見つかりませんでした。'], 404);
         }
 
@@ -127,18 +129,17 @@ class BookController extends Controller
      */
     public function store(BookRequest $request): RedirectResponse
     {
-        $this->authorize('create', Book::class);
-
+        // 認可（BookPolicy::create）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
-        $book = Book::create([
+        // user_id は User::books() リレーション経由で、ログインユーザーのIDが自動的に設定される
+        $book = Auth::user()->books()->create([
             'title' => $validated['title'],
             'author' => $validated['author'],
-            'isbn' => $validated['isbn'],
-            'published_date' => $validated['published_date'],
+            'isbn' => $validated['isbn'] ?? null,
+            'published_date' => $validated['published_date'] ?? null,
             'description' => $validated['description'] ?? null,
             'image_url' => $validated['image_url'] ?? null,
-            'user_id' => Auth::id(),
         ]);
 
         $book->genres()->sync($validated['genres']);
@@ -153,7 +154,7 @@ class BookController extends Controller
     {
         $this->authorize('update', $book);
 
-        $genres = Genre::all(); 
+        $genres = Genre::all();
 
         return view('books.edit', compact('book', 'genres'));
     }
@@ -163,15 +164,14 @@ class BookController extends Controller
      */
     public function update(BookRequest $request, Book $book): RedirectResponse
     {
-        $this->authorize('update', $book);
-
+        // 認可（BookPolicy::update）はBookRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book->update([
             'title' => $validated['title'],
             'author' => $validated['author'],
-            'isbn' => $validated['isbn'],
-            'published_date' => $validated['published_date'],
+            'isbn' => $validated['isbn'] ?? null,
+            'published_date' => $validated['published_date'] ?? null,
             'description' => $validated['description'] ?? null,
             'image_url' => $validated['image_url'] ?? null,
         ]);
@@ -192,5 +192,4 @@ class BookController extends Controller
 
         return redirect()->route('books.index')->with('success', '書籍を削除しました。');
     }
-
 }

@@ -26,6 +26,9 @@ class RegisterTest extends TestCase
         ], $overrides);
     }
 
+    /**
+     * 9-1-1 名前が入力されていない場合、バリデーションメッセージが表示される
+     */
     public function test_name_is_required(): void
     {
         $response = $this->post(route('register'), $this->validPayload(['name' => '']));
@@ -34,6 +37,9 @@ class RegisterTest extends TestCase
         $this->assertGuest();
     }
 
+    /**
+     * 9-1-2 名前が21文字以上の場合、バリデーションメッセージが表示される
+     */
     public function test_name_must_not_exceed_20_characters(): void
     {
         $response = $this->post(route('register'), $this->validPayload(['name' => str_repeat('あ', 21)]));
@@ -41,6 +47,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['name' => 'お名前は20文字以内で入力してください']);
     }
 
+    /**
+     * 9-1-3 メールアドレスが入力されていない場合、バリデーションメッセージが表示される
+     */
     public function test_email_is_required(): void
     {
         $response = $this->post(route('register'), $this->validPayload(['email' => '']));
@@ -48,6 +57,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['email' => 'メールアドレスを入力してください']);
     }
 
+    /**
+     * 9-1-4 メールアドレスがメール形式でない場合、バリデーションメッセージが表示される
+     */
     public function test_email_must_be_valid_format(): void
     {
         $response = $this->post(route('register'), $this->validPayload(['email' => 'invalid-email']));
@@ -55,6 +67,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['email' => 'メールアドレスはメール形式で入力してください']);
     }
 
+    /**
+     * 9-1-5 メールアドレスが256文字以上の場合、バリデーションメッセージが表示される
+     */
     public function test_email_must_not_exceed_255_characters(): void
     {
         // ローカル部64文字（RFC上の上限）+ ドメイン部で255文字を超える、形式としては正しいメールアドレス
@@ -68,6 +83,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['email' => 'メールアドレスは255文字以内で入力してください']);
     }
 
+    /**
+     * 9-1-6 既に登録されているメールアドレスの場合、バリデーションメッセージが表示される
+     */
     public function test_email_must_be_unique(): void
     {
         User::factory()->create(['email' => 'exists@example.com']);
@@ -77,6 +95,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['email' => 'このメールアドレスはすでに登録されています']);
     }
 
+    /**
+     * 9-1-7 パスワードが入力されていない場合、バリデーションメッセージが表示される
+     */
     public function test_password_is_required(): void
     {
         $response = $this->post(route('register'), $this->validPayload(['password' => '', 'password_confirmation' => '']));
@@ -84,6 +105,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['password' => 'パスワードを入力してください']);
     }
 
+    /**
+     * 9-1-8 パスワードが7文字以下の場合、バリデーションメッセージが表示される
+     */
     public function test_password_must_be_at_least_8_characters(): void
     {
         $response = $this->post(route('register'), $this->validPayload([
@@ -94,6 +118,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['password' => 'パスワードは8文字以上で入力してください']);
     }
 
+    /**
+     * 9-1-9 パスワードが21文字以上の場合、バリデーションメッセージが表示される
+     */
     public function test_password_must_not_exceed_20_characters(): void
     {
         $longPassword = str_repeat('a', 21);
@@ -106,6 +133,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['password' => 'パスワードは20文字以内で入力してください']);
     }
 
+    /**
+     * 9-1-10 確認用パスワードが入力されていない場合、バリデーションメッセージが表示される
+     */
     public function test_password_confirmation_is_required(): void
     {
         $response = $this->post(route('register'), $this->validPayload(['password_confirmation' => '']));
@@ -113,6 +143,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['password_confirmation' => '確認用パスワードを入力してください']);
     }
 
+    /**
+     * 9-1-11 パスワードが確認用パスワードと一致しない場合、バリデーションメッセージが表示される
+     */
     public function test_password_confirmation_must_match_password(): void
     {
         $response = $this->post(route('register'), $this->validPayload(['password_confirmation' => 'different123']));
@@ -120,6 +153,9 @@ class RegisterTest extends TestCase
         $response->assertSessionHasErrors(['password_confirmation' => 'パスワードが一致しません']);
     }
 
+    /**
+     * 9-1-12 全ての項目が正しく入力されている場合、会員登録が完了する
+     */
     public function test_user_can_register_with_valid_data(): void
     {
         $response = $this->post(route('register'), $this->validPayload());

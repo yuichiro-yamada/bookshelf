@@ -17,14 +17,13 @@ class ReviewController extends Controller
      */
     public function store(ReviewRequest $request, Book $book): RedirectResponse
     {
-        $this->authorize('create', [Review::class, $book]);
-
+        // 認可（ReviewPolicy::create）はReviewRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $book->reviews()->create([
             'user_id' => Auth::id(),
             'rating' => $validated['rating'],
-            'comment' => $validated['comment'] ?? null,
+            'comment' => $validated['comment'],
         ]);
 
         return back()->with('success', 'レビューを投稿しました。');
@@ -61,13 +60,12 @@ class ReviewController extends Controller
      */
     public function update(ReviewRequest $request, Review $review): RedirectResponse
     {
-        $this->authorize('update', $review);
-
+        // 認可（ReviewPolicy::update）はReviewRequest::authorize()側で行っている
         $validated = $request->validated();
 
         $review->update([
             'rating' => $validated['rating'],
-            'comment' => $validated['comment'] ?? null,
+            'comment' => $validated['comment'],
         ]);
 
         return redirect()->route('books.show', $review->book)->with('success', 'レビューを更新しました。');
@@ -84,6 +82,4 @@ class ReviewController extends Controller
 
         return back()->with('success', 'レビューを削除しました。');
     }
-
-    
 }

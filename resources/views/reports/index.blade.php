@@ -114,7 +114,7 @@
                                     ];
                                     $rankColor = $rankColors[$index] ?? 'bg-gray-200 text-gray-600';
                                 @endphp
-                                <a href="{{ route('genres.show', $genre['id']) }}" class="flex items-center p-4 border rounded-lg hover:shadow-md transition">
+                                <a href="{{ route('genres.show', [$genre['id'], 'from' => 'reports']) }}" class="flex items-center p-4 border rounded-lg hover:shadow-md transition">
                                     <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full {{ $rankColor }} font-bold text-sm">
                                         {{ $index + 1 }}
                                     </div>

@@ -1,67 +1,604 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Bookshelf 書籍レビュー・管理アプリ
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## 概要
 
-## About Laravel
+読んだ本・読みたい本を登録し、レビューや読書計画で管理できる Laravel 製の書籍管理アプリです。
+プログラミングスクール（コーチテック）の課題として開発しています。
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 主な機能
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| 分類 | 内容 |
+|---|---|
+| 認証 | 会員登録・ログイン・ログアウト |
+| 書籍管理 | 一覧（検索・ジャンル絞り込み・並び替え）、詳細、登録、編集、削除。登録者本人のみ編集・削除可 |
+| ISBN検索 | ISBNを入力すると Google Books API から書籍情報を取得し、登録フォームに自動入力 |
+| ジャンル管理 | ジャンルの一覧・登録・編集・削除。書籍には1つ以上のジャンルを紐づけ |
+| レビュー | 評価（1〜5）とコメントの投稿・編集・削除。1書籍につき1ユーザー1件。レビューへの「いいね」 |
+| お気に入り | 書籍のお気に入り登録・解除、一覧 |
+| ランキング | レビューの平均評価が高い書籍の上位10件（並び順は「一覧画面の並び順」を参照） |
+| マイ読書レポート | ログインユーザー自身の読書状況のレポート |
+| 読書計画 | 書籍ごとに期日を設定。ステータスは「進行中」「完了」「期限切れ」。期日の変更、読了操作、削除 |
+| 通知 | ヘッダーのベルアイコンから通知一覧を表示し、既読にできる |
+| 日次バッチ | 毎日20:00に、期限切れへの更新と読書計画のリマインダー通知を実行（後述） |
+| 公開API | 書籍の一覧・詳細取得（認証不要）、登録・更新・削除（Sanctumトークン認証） |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 使用技術
 
-## Learning Laravel
+- PHP 8.5 / Laravel 10
+- MySQL 8.4（開発）、SQLite in-memory（テスト）
+- Laravel Fortify（会員登録・ログイン認証）
+- Laravel Sanctum（API認証）
+- Blade / Tailwind CSS / @tailwindcss/forms / Alpine.js / Vite
+- Docker / Laravel Sail / phpMyAdmin（開発環境）
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## 開発環境URL
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+| 用途 | URL |
+|---|---|
+| アプリケーション | http://localhost |
+| phpMyAdmin | http://localhost:8080 |
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## ER図
 
-## Laravel Sponsors
+<img src="./erd.png" alt="書籍レビュー・管理アプリER図" width="1000">
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+※ 認証・システム補助のテーブル（`password_reset_tokens`、`personal_access_tokens`、`failed_jobs`）は、他のテーブルと外部キーで関連していないため、関連線を引かずに記載しています（定義はテーブル仕様書を参照）。
 
-### Premium Partners
+## 環境構築
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+環境構築の手順は次の2つに分けて記載しています。
 
-## Contributing
+- **A. リポジトリをクローンして起動する手順**：このアプリを手元で動かす場合は、こちらの手順だけを上から順に実行してください。
+- **B. 参考：このプロジェクトを新規に作成したときの手順**：Laravel 10 プロジェクトの作成から Tailwind CSS の導入までの記録です。A の手順を実行する場合は不要です（B の内容はすべてリポジトリに含まれています）。
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 前提条件
 
-## Code of Conduct
+- Docker Desktop がインストールされ、起動していること
+- Git がインストールされていること
+- macOS または Linux のターミナルで実行することを前提にしています（Windows の場合は WSL2 上の Ubuntu などで実行してください）
+- 手元に PHP・Composer・Node.js をインストールする必要はありません（すべて Docker コンテナ内で実行します）
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### A. リポジトリをクローンして起動する手順
 
-## Security Vulnerabilities
+#### 1. リポジトリをクローンする
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+git clone git@github.com:yuichiro-yamada/bookshelf.git bookshelf-app
+cd bookshelf-app
+```
 
-## License
+SSH キーを設定していない場合は、HTTPS の URL を使います。
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-# bookshelf
+```bash
+git clone https://github.com/yuichiro-yamada/bookshelf.git bookshelf-app
+cd bookshelf-app
+```
+
+以降のコマンドは、すべて `bookshelf-app` ディレクトリで実行します。
+
+#### 2. Composer の依存パッケージをインストールする
+
+`vendor` ディレクトリ（Laravel Sail を含む）はリポジトリに含まれていないため、最初に Docker の一時コンテナで `composer install` を実行します。
+
+```bash
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php84-composer:latest \
+    composer install --ignore-platform-reqs
+```
+
+完了すると `vendor` ディレクトリが作成され、`./vendor/bin/sail` コマンドが使えるようになります。次のコマンドでファイルが表示されれば成功です（`No such file or directory` と表示される場合は、エラーが出ていないか確認して、上のコマンドをもう一度実行してください）。
+
+```bash
+ls vendor/autoload.php
+```
+
+> この手順が完了する前に、次の手順4（コンテナの起動）を実行しないでください。`vendor` がない状態でコンテナを起動すると、コンテナ内のアプリケーションサーバーが起動に失敗したまま停止します。
+
+#### 3. 環境変数ファイル（.env）を作成する
+
+```bash
+cp .env.example .env
+```
+
+`.env.example` には Sail の MySQL コンテナに接続する設定があらかじめ入っているため、データベースの設定を変更する必要はありません。
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=laravel
+DB_USERNAME=sail
+DB_PASSWORD=password
+```
+
+ISBN検索機能（Google Books API）を使う場合は、`.env` の `GOOGLE_BOOKS_API_KEY` に API キーを設定します。未設定でもアプリは起動します（ISBN検索以外の機能は API キーなしで動作します）。
+
+```dotenv
+# ISBN検索機能で使用（Google Books API のAPIキー）
+GOOGLE_BOOKS_API_KEY=取得したAPIキー
+# Google Books API のエンドポイント（通常は変更不要。未設定の場合もこの値が使われる）
+GOOGLE_BOOKS_API_URL=https://www.googleapis.com/books/v1/volumes
+```
+
+#### 4. コンテナを起動する
+
+```bash
+./vendor/bin/sail up -d
+```
+
+アプリケーション（`laravel.test`）・MySQL（`mysql`）・phpMyAdmin（`phpmyadmin`）の3つのコンテナが起動します。初回はイメージのビルドに数分かかります。
+
+起動状態は次のコマンドで確認できます（3つとも `Up` になっていれば OK）。
+
+```bash
+./vendor/bin/sail ps
+```
+
+> ポート 80・3306・8080 を他のアプリが使っている場合は起動に失敗します。その場合は `.env` に `APP_PORT=8000`・`FORWARD_DB_PORT=3307`・`FORWARD_PHPMYADMIN_PORT=8081` のように空いているポートを指定してから、もう一度起動してください。
+
+> 手順2の `composer install` が完了する前にコンテナを起動した場合、コンテナは `Up` と表示されていても、アプリケーションサーバーが停止しています（`curl -I http://localhost` を実行すると `Connection reset by peer` になる、ブラウザでページが表示されない）。その場合は、`vendor/autoload.php` があることを確認してから、`./vendor/bin/sail down` → `./vendor/bin/sail up -d` でコンテナを起動し直してください。
+
+#### 5. アプリケーションキーを生成し、データベースを作成する
+
+```bash
+# アプリケーションキーの生成（.env の APP_KEY に値が入る）
+./vendor/bin/sail artisan key:generate
+
+# テーブルの作成と初期データの投入
+./vendor/bin/sail artisan migrate --seed
+```
+
+> コンテナ起動直後は MySQL の準備が終わっておらず、`migrate` が `Connection refused` などのエラーになることがあります。その場合は30秒ほど待ってから、もう一度実行してください。
+
+#### 6. フロントエンド（Tailwind CSS など）をビルドする
+
+```bash
+# npm パッケージのインストール
+./vendor/bin/sail npm install
+
+# CSS・JavaScript のビルド
+./vendor/bin/sail npm run build
+```
+
+画面のコードを編集しながら開発する場合は、`build` の代わりに次のコマンドを実行します（変更が自動で反映されます。実行中はターミナルを開いたままにしてください）。
+
+```bash
+./vendor/bin/sail npm run dev
+```
+
+> `npm run dev` の実行中は、`public/hot` というファイルが作られ、CSS・JavaScript を開発サーバー（ポート 5173）から読み込みます。`Ctrl + C` で止めると `public/hot` は自動で削除されますが、`./vendor/bin/sail down` などで開発サーバーごと停止した場合は `public/hot` が残り、停止中の開発サーバーを参照するため **CSS が当たらない画面になります**。その場合は `rm public/hot` を実行する（ビルド済みのファイルが使われる）か、`./vendor/bin/sail npm run dev` を起動し直してください。
+
+#### 7. ブラウザで確認する
+
+| 用途 | URL |
+|---|---|
+| アプリケーション | http://localhost |
+| phpMyAdmin | http://localhost:8080 |
+
+ログインに使うアカウントは「初期データ」を参照してください（例：`yamada@example.com` / `password`）。
+
+#### コンテナの停止・再起動
+
+```bash
+# 停止
+./vendor/bin/sail down
+
+# 2回目以降の起動（手順2・3・5・6 は不要）
+./vendor/bin/sail up -d
+```
+
+> `npm run dev` を実行したまま `sail down` で停止した場合は、再起動後に CSS が当たらないことがあります（手順6の注意書きを参照。`rm public/hot` で解消します）。
+
+> 毎回 `./vendor/bin/sail` と入力するのが手間な場合は、`alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'` をシェルの設定ファイル（`~/.zshrc` など）に追加すると、`sail up -d` のように短く実行できます。
+
+### B. 参考：このプロジェクトを新規に作成したときの手順
+
+このアプリを最初に作成したときの手順です。A の手順で起動する場合は実行不要です。
+
+#### 1. Laravel 10 プロジェクトを作成する
+
+手元に PHP・Composer がなくても実行できるよう、Composer の Docker イメージを使って作成します。
+
+```bash
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/app" \
+    -w /app \
+    composer:2 \
+    create-project laravel/laravel:^10.0 bookshelf-app
+
+cd bookshelf-app
+```
+
+#### 2. Laravel Sail を導入する
+
+```bash
+# Sail のインストール
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php84-composer:latest \
+    composer require laravel/sail --dev
+
+# Sail の設定ファイル（compose.yaml）の作成。MySQL を使う
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$(pwd):/var/www/html" \
+    -w /var/www/html \
+    laravelsail/php84-composer:latest \
+    php artisan sail:install --with=mysql
+```
+
+`sail:install` により、`compose.yaml` が作成され、`.env` のデータベース設定が Sail の MySQL コンテナ用（`DB_HOST=mysql`・`DB_USERNAME=sail`・`DB_PASSWORD=password`）に書き換わります。
+
+#### 3. phpMyAdmin を追加する
+
+`compose.yaml` の `services:` の中（`mysql:` の定義の後ろ）に、次の `phpmyadmin:` の定義を追加します（インデントは `mysql:` とそろえます）。
+
+```yaml
+    phpmyadmin:
+        image: 'phpmyadmin:latest'
+        ports:
+            - '${FORWARD_PHPMYADMIN_PORT:-8080}:80'
+        environment:
+            PMA_HOST: mysql
+            PMA_USER: '${DB_USERNAME}'
+            PMA_PASSWORD: '${DB_PASSWORD}'
+        networks:
+            - sail
+        depends_on:
+            - mysql
+```
+
+これで、コンテナ起動後に http://localhost:8080 から phpMyAdmin にアクセスできます（`.env` のユーザー名・パスワードで自動ログインします）。
+
+#### 4. コンテナを起動し、アプリケーションキーを生成する
+
+```bash
+# コンテナの起動（初回はイメージのビルドに数分かかる）
+./vendor/bin/sail up -d
+
+# アプリケーションキーの生成
+./vendor/bin/sail artisan key:generate
+```
+
+※ `create-project` で作成した直後の `.env` にはキーが生成済みのため、この手順では上書きされます（`.env` を作り直した場合にも必要な手順です）。
+
+#### 5. 日本語ロケールを設定する
+
+`config/app.php` の次の3か所を変更します。
+
+```php
+'timezone' => 'Asia/Tokyo',   // 変更前：'UTC'
+'locale' => 'ja',             // 変更前：'en'
+'faker_locale' => 'ja_JP',    // 変更前：'en_US'
+```
+
+- `timezone`：日時の保存・表示を日本時間にする（日次バッチも 20:00 日本時間に実行される）
+- `locale`：アプリの言語を日本語にする（HTML の `lang` 属性が `ja` になる）
+- `faker_locale`：ファクトリ・シーダーで作るダミーデータ（人名など）を日本語にする
+- `fallback_locale` は `en` のままにしています。日本語の言語ファイル（`lang/ja`）は追加していないため、Laravel 標準のメッセージは英語のまま使われます。画面・バリデーションの日本語メッセージは、各 FormRequest などで個別に定義しています。
+
+設定を変更したら、キャッシュをクリアしておきます。
+
+```bash
+./vendor/bin/sail artisan config:clear
+```
+
+#### 6. Tailwind CSS を導入する
+
+```bash
+# Tailwind CSS（v3）・PostCSS・Autoprefixer・フォーム用プラグインのインストール
+./vendor/bin/sail npm install -D tailwindcss@3 postcss autoprefixer @tailwindcss/forms
+
+# Alpine.js（ドロップダウンメニューなどで使用）のインストール
+./vendor/bin/sail npm install alpinejs
+
+# 設定ファイル（tailwind.config.js・postcss.config.js）の作成
+./vendor/bin/sail npx tailwindcss init -p
+```
+
+`tailwind.config.js` を次の内容にします（Tailwind を適用するファイルの場所と、フォーム用プラグインを指定）。
+
+```js
+import defaultTheme from 'tailwindcss/defaultTheme';
+import forms from '@tailwindcss/forms';
+
+/** @type {import('tailwindcss').Config} */
+export default {
+    content: [
+        './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
+        './storage/framework/views/*.php',
+        './resources/views/**/*.blade.php',
+    ],
+    theme: {
+        extend: {
+            fontFamily: {
+                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+            },
+        },
+    },
+    plugins: [forms],
+};
+```
+
+`postcss.config.js` を次の内容にします。
+
+```js
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+```
+
+`resources/css/app.css` に次の3行を記述します。
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+`resources/js/app.js` に Alpine.js の読み込みを記述します。
+
+```js
+import Alpine from 'alpinejs';
+
+window.Alpine = Alpine;
+
+Alpine.start();
+```
+
+レイアウトの Blade ファイル（`resources/views/components/app-layout.blade.php` など）の `<head>` 内に、Vite でビルドした CSS・JavaScript の読み込みを記述します。
+
+```blade
+@vite(['resources/css/app.css', 'resources/js/app.js'])
+```
+
+最後に、ビルドして反映を確認します。
+
+```bash
+./vendor/bin/sail npm run dev
+```
+
+### 初期データ
+
+`migrate --seed` で、ユーザー・ジャンル・書籍・レビュー・お気に入り・いいね・読書計画のサンプルデータが投入されます。
+書籍の登録者、レビューの投稿者・評価・コメント、いいねはランダムに割り当てられます（実行のたびに内容が変わります）。
+ユーザーは次の5名で、パスワードはすべて `password` です。
+
+`yamada@example.com` / `suzuki@example.com` / `tanaka@example.com` / `sato@example.com` / `takahashi@example.com`
+
+読書計画は、実行日を起点とした期日で6件が登録されます（動作確認用）。
+
+| 対象ユーザー | 期日 | ステータス | 確認できること |
+|---|---|---|---|
+| 山田太郎 | 3日後 | 進行中 | 3日前の予告リマインダーの対象 |
+| 山田太郎 | 当日 | 進行中 | 当日の最終警告リマインダーの対象 |
+| 山田太郎 | 3日前 | 進行中 | 日次バッチで「期限切れ」に更新され、3日後の再エンゲージメント通知の対象にもなる |
+| 山田太郎 | 7日後 | 進行中 | リマインダーの対象外 |
+| 山田太郎 | 10日前 | 完了 | 完了済みの計画（編集・読了はできない） |
+| 鈴木花子 | 5日後 | 進行中 | 山田太郎でログインして `/reading-plans/6/edit` を開くと403になる |
+
+## 日次バッチ（読書計画）
+
+コマンド `reading-plans:daily` を、Laravel Scheduler が毎日 20:00（`Asia/Tokyo`）に実行します（`app/Console/Kernel.php`）。
+このコマンドは次の順に処理します。順序が重要で、必ず期限切れへの更新を先に行い、その後に通知対象を判定します。
+
+1. `reading-plans:expire` … 期日を過ぎた「進行中」の計画を「期限切れ」に更新
+2. `reading-plans:remind` … 次の通知を送信
+
+| 対象 | 通知 |
+|---|---|
+| 期日の3日前・進行中 | 予告リマインダー（`upcoming`） |
+| 期日当日・進行中 | 最終警告リマインダー（`final`） |
+| 期日の3日後・期限切れ | 再エンゲージメント通知（`re_engagement`） |
+
+期限切れへの更新は画面表示時には行わず、このバッチのみで行います。そのため、期日を過ぎても次の20:00までは「進行中」と表示されます。
+
+### スケジューラの起動
+
+Scheduler は「1分ごとに `schedule:run` を呼ぶ仕組み」が別途必要です。
+
+```bash
+# ローカル開発（別ターミナルで起動しておく）
+./vendor/bin/sail artisan schedule:work
+
+# 本番環境では cron に登録
+* * * * * cd /path/to/bookshelf-app && php artisan schedule:run >> /dev/null 2>&1
+```
+
+20:00 を待たずに動作確認する場合は、コマンドを直接実行します。
+
+```bash
+./vendor/bin/sail artisan reading-plans:daily
+```
+
+## 公開API
+
+書籍の一覧・詳細は認証不要、登録・更新・削除は Sanctum のトークン認証（Bearer Token）が必要です。
+
+すべてのエンドポイントで、リクエストヘッダーに `Accept: application/json` を付与してください（付与しない場合、エラー時にJSONではなくHTMLやリダイレクトが返ります）。詳細は [docs/api-spec-books.md](docs/api-spec-books.md) を参照してください。
+
+| 要件 | メソッド | パス | 概要 | 認証 |
+|---|---|---|---|---|
+| AP01:書籍一覧API | GET | `/api/v1/books` | 書籍一覧の取得（キーワード検索・ジャンル絞り込み・ページネーション） | 不要 |
+| AP02:書籍詳細API | GET | `/api/v1/books/{book}` | 書籍詳細の取得（ジャンル・レビュー一覧を含む） | 不要 |
+| AP03:書籍登録API | POST | `/api/v1/books` | 書籍の新規登録 | 必要 |
+| AP04:書籍更新API | PUT | `/api/v1/books/{book}` | 書籍の更新（登録者本人のみ） | 必要 |
+| AP05:書籍削除API | DELETE | `/api/v1/books/{book}` | 書籍の削除（登録者本人のみ） | 必要 |
+
+書き込み系（AP03〜AP05）の認証・認可は「★AP06:SanctumAPIトークン認証（応用）」として実装しています（未認証は 401、他人の書籍の更新・削除は 403）。
+
+トークン発行用のエンドポイントは用意していません。動作確認用のトークンは tinker で発行します。
+
+```bash
+./vendor/bin/sail artisan tinker
+App\Models\User::find(1)->createToken('test')->plainTextToken
+```
+
+## テスト
+
+```bash
+./vendor/bin/sail artisan test
+```
+
+テストは SQLite のインメモリDBで実行されます（`phpunit.xml`）。
+テストの内容は `テストケース一覧.xlsx` に定義しており、テストコードは `tests/` 配下に配置しています。
+
+## ドキュメント
+
+仕様書はリポジトリ直下（API仕様書のみ `docs/`）に配置しています。
+
+### データ
+
+| ファイル | 内容 |
+|---|---|
+| `テーブル仕様書.xlsx` | 各テーブルのカラム定義・制約・備考 |
+| `erd.png` / `erd.drawio` | ER図（テーブル仕様書の内容に合わせて作成） |
+| `Enum仕様書.xlsx` | ReadingPlanStatus（読書計画のステータス）の値・ラベル・表示色・状態が変わるタイミング |
+
+### 画面
+
+| ファイル | 内容 |
+|---|---|
+| `画面一覧・画面遷移仕様書.xlsx` | 画面一覧（画面ID・パス・認証・概要）、画面遷移表、画面遷移図 |
+| `画面項目仕様書.xlsx` | 画面ごとの表示項目・入力項目・ボタン・リンクと、その表示条件 |
+| `メッセージ仕様書.xlsx` | 完了・エラーメッセージ、画面内の固定表示（0件時の表示・確認ダイアログなど）、ISBN検索・APIのエラーメッセージ |
+
+### 処理・ルール
+
+| ファイル | 内容 |
+|---|---|
+| `ルート・コントローラー仕様書.xlsx` | 全ルートの画面名称・パス・メソッド・コントローラー・アクション・認証要否・処理内容 |
+| `バリデーション仕様書.xlsx` | FormRequest ごとのバリデーションルール・エラーメッセージ・利用箇所 |
+| `認可仕様書.xlsx` | ポリシー（BookPolicy・ReviewPolicy・ReadingPlanPolicy）ごとの認可ルール・利用箇所・拒否時の挙動（ポリシーを使わない「いいね」・通知の既読化を含む） |
+| `バッチ・通知仕様書.xlsx` | 日次バッチ（コマンド・処理順・実行方法）、通知の種類と送信条件、通知データの項目、表示・既読・削除のルール |
+
+### API
+
+| ファイル | 内容 |
+|---|---|
+| [docs/api-spec-books.md](docs/api-spec-books.md) | 書籍API仕様書（リクエスト・レスポンスのJSON例を含むため Markdown で作成） |
+| `外部API連携仕様書.xlsx` | Google Books API（ISBN検索）との連携方法：設定・リクエスト・レスポンスから取り出す項目・エラー時の処理 |
+
+### テスト
+
+| ファイル | 内容 |
+|---|---|
+| `テストケース一覧.xlsx` | テストケース一覧（大項目・項目・テスト手順・期待挙動・テストファイル） |
+
+## 一覧画面の並び順
+
+並び替えの条件が複数ある場合は、第1優先の条件が同じもの同士を第2優先の条件で並べる（第3優先も同様）。
+
+| 画面 | 並び順 | 備考 |
+|---|---|---|
+| 書籍一覧（トップページ）：新しい順 | 第1優先：登録日時の新しい順<br>第2優先：ID の新しい順 | 既定の並び順。1ページ10件 |
+| 書籍一覧（トップページ）：古い順 | 第1優先：登録日時の古い順<br>第2優先：ID の古い順 | 並び替えで選択。1ページ10件 |
+| 書籍一覧（トップページ）：タイトル順 | 第1優先：タイトルの昇順<br>第2優先：ID の古い順 | 並び替えで選択。1ページ10件 |
+| 書籍一覧（トップページ）：評価順 | 第1優先：平均評価の高い順<br>第2優先：登録日時の新しい順<br>第3優先：ID の新しい順 | 並び替えで選択。1ページ10件 |
+| 書籍詳細のレビュー一覧 | 投稿日時の新しい順 | |
+| ジャンル一覧 | ジャンルID の昇順（登録順） | |
+| ジャンル詳細の書籍一覧 | 第1優先：書籍の登録日時の新しい順<br>第2優先：ID の新しい順 | 1ページ10件 |
+| お気に入り一覧 | 第1優先：お気に入りに登録した日時の新しい順<br>第2優先：お気に入り登録の新しい順（favorites の ID の新しい順） | 1ページ10件 |
+| ランキング | 第1優先：平均評価の高い順<br>第2優先：レビュー件数の多い順<br>第3優先：出版日の新しい順 | 上位10件のみ表示 |
+| 読書計画一覧 | 期日の昇順（期日が近い順） | 状態（進行中・完了・期限切れ）で絞り込み可能 |
+| 通知一覧 | 第1優先：通知の作成日時の新しい順<br>第2優先：①期日3日前（予告）→②期日当日（最終警告）→③期日3日後（再エンゲージメント） | 日次バッチは同じ時刻に複数の通知を作成するため、作成日時が同じ通知は第2優先の順で表示する |
+| マイ読書レポート：高評価書籍 TOP5 | 第1優先：評価の高い順<br>第2優先：レビュー投稿日時の新しい順 | 評価4以上のみ |
+| マイ読書レポート：ジャンル別評価傾向 TOP5 | 第1優先：平均評価の高い順<br>第2優先：レビュー件数の多い順 | |
+| 公開API：書籍一覧（`GET /api/v1/books`） | 第1優先：登録日時の新しい順<br>第2優先：ID の新しい順 | 1ページの件数は `per_page` で1〜100件を指定（未指定の場合は20件）。`page` でページを指定 |
+
+## 申し送り事項（要件外の仕様・コーチとの決定事項）
+
+機能要件には記載がなく、コーチと相談して決めた仕様です。
+
+### 書籍登録・編集
+
+- ISBN・出版日は任意入力とした。登録・編集画面では必須マーク（赤い *）を付けず、未登録の場合は書籍詳細画面に「未登録」と表示する。
+- 書籍タイトルは重複して登録できる（UNIQUE制約なし）。ISBN は入力した場合のみ重複不可。
+- ISBN検索は登録画面の「検索」ボタンで行い、取得した情報で入力済みの内容を上書きする。
+- ISBN検索で書籍情報を取得できなかった場合（該当なし、Google Books API に接続できない・タイムアウトした場合を含む）は、エラーメッセージを表示し、入力欄は変更しない。Google Books API のタイムアウトは10秒。
+
+### 認可と入力チェックの順番
+
+- 登録・更新処理では、認可（ポリシー）を入力チェック（バリデーション）より先に行う。権限がない場合は、入力内容にかかわらず 403 を返す（422 にはならない）。
+- 書籍の登録・更新（画面・API）、レビューの投稿・更新、読書計画の作成・更新が対象で、各 FormRequest の `authorize()` でポリシーを呼び出している。
+
+### ジャンル詳細画面
+
+- 画面左上のリンクが「書籍一覧に戻る」となっていたが、書籍一覧からジャンル詳細への導線はなく、ジャンル詳細へはジャンル一覧またはマイ読書レポートからのみ遷移できる。
+- そのため、遷移元に合わせて「← ジャンル一覧に戻る」「← マイ読書レポートに戻る」と表示し、それぞれの画面へ戻るようにした。
+  - 遷移元はクエリパラメータ `from`（`genres` / `reports`）で受け取る。指定がない場合（URLを直接開いた場合など）は「ジャンル一覧に戻る」を表示する。
+  - ページ送りをしても `from` を引き継ぐため、戻り先は変わらない。
+
+### 書籍詳細画面（レビュー）
+
+- 評価を公平にするため、1人のユーザーが同じ書籍に投稿できるレビューは1件までとした。
+  - 投稿済みの書籍では、投稿フォームの代わりに「この書籍に対するあなたのレビューはすでに投稿されています。レビューは1書籍に1つまでです。」と表示する。
+  - 投稿リクエストを直接送った場合も 403 Forbidden となり、投稿できない（`ReviewPolicy::create`）。
+  - データベース上も `reviews` テーブルの `(user_id, book_id)` に一意制約を設定している。
+
+### 読書計画
+
+- 同じ書籍について「進行中」の計画がすでにある場合のみ、新しい計画を作成できない。「完了」「期限切れ」の計画しかない書籍は、再度計画を作成できる。
+- 読書計画を削除すると、その計画に紐づくリマインダー通知もあわせて削除する（`ReadingPlanController@destroy` で、計画の削除と1つのトランザクションで実行）。
+
+### マイ読書レポート
+
+- 総レビュー数・読了冊数・平均評価・評価分布・高評価書籍TOP5・ジャンル別評価傾向TOP5は、いずれもログインユーザー自身のレビューをもとに集計する。
+- 読了冊数は「レビューを書いた本のユニーク数」とする（レビューは1書籍1件のため、総レビュー数と同じ値になる）。
+- 評価分布は、デザインUIのとおり上から ★1 → ★5 の順に表示する。
+
+### 公開API（書籍一覧）
+
+- 1ページの件数はクエリパラメータ `per_page` で指定できる。未指定の場合は20件、指定できる範囲は1〜100件（範囲外・整数でない場合は422）。
+  - 経緯：一度 `per_page` を廃止して10件固定としたが、コーチ指摘により「未指定時20件・最小1件・最大100件」の `per_page` を設ける仕様に変更した。
+  - 1回のリクエストで1ページ分を返し、次のページはクエリパラメータ `page` を指定して再度リクエストする（レスポンスの `links.next` のURLを利用できる。`per_page`・`keyword`・`genre_id` もURLに引き継がれる）。
+- ジャンル絞り込みのクエリパラメータ名は `genre_id` とする（コーチ指摘により `genre` から変更）。画面の書籍一覧（トップページ）の検索フォームのパラメータ名 `genre` は変更していない。
+
+### その他
+
+- API は、すべてのエンドポイントでリクエストヘッダーに `Accept: application/json` を付与する前提とし、付与しない場合までJSONレスポンスを保証する専用のミドルウェアは追加しない。
+- トークン発行用のエンドポイントは作成しない（Sanctum によるBearerトークン認証への対応まで。テストでは `$user->createToken()` でトークンを発行して認証する）。
+- Laravel 標準のテーブルのうち、`password_reset_tokens`（パスワードリセット）と `failed_jobs`（キューで失敗したジョブ）は、本アプリでは該当機能を使っていないため未使用。マイグレーションは Laravel 標準のまま残している。`personal_access_tokens` は公開APIの Sanctum トークン認証で使用する。
+- `routes/api.php` の `GET /api/user`（ログインユーザー情報の取得）も Laravel 標準のルートで、本アプリでは使用していない（テストの対象外）が、Laravel 標準のまま残している。
+- テストカバレッジが0%の Laravel 標準ファイル（`TrustHosts`・`BroadcastServiceProvider` など）は削除せずに残している。
+
+## 既知の課題（未対応）
+
+現時点で対応していない仕様上の課題です。いずれもコーチ確認済みで、対応不要としています。
+
+### 書籍を削除しても、リマインダー通知は残る
+
+- 書籍を削除すると、その書籍の読書計画もあわせて削除される（`reading_plans.book_id` の外部キー制約 `cascadeOnDelete` による）。
+- 一方、その読書計画に対して送信済みのリマインダー通知（`notifications` テーブル）は削除されず、通知一覧に残る。
+- 読書計画を画面から削除した場合は、`ReadingPlanController@destroy` で関連する通知もあわせて削除している（計画の削除と1つのトランザクションで実行）。書籍削除時はデータベースの連鎖削除で読書計画が消えるためこの処理を通らず、通知が削除されない。
+- **コーチ確認済み・対応不要**（書籍削除時・ユーザー削除時のリマインダー通知の削除は不要。読書計画を直接削除した場合のみ通知を削除する）。
+
+### 期日を過ぎても、翌日の20:00までは「期限切れ」と表示されない
+
+- 読書計画の状態を「進行中」から「期限切れ」に更新するのは、毎日20:00に実行される日次バッチ（`reading-plans:daily`）のみ。一覧・編集画面を表示したときには更新しない。
+- 期日の当日中は「進行中」のままで、期日を過ぎた翌日の20:00のバッチ実行で初めて「期限切れ」になる。
+- そのため、期日の翌日0:00〜20:00の間は、期日を過ぎていても「進行中」と表示される。
+- **コーチ確認済み・対応不要**（期限切れへの更新も20:00の日次バッチでまとめて行い、「期限切れ」と表示されるのは期日の翌日20:00以降でよい）。
+
+### 同じ日に日次バッチを複数回実行すると、通知が重複して送信される
+
+- リマインダー通知の送信（`reading-plans:remind`）は、実行した日の期日と状態だけで対象を判定しており、同じ計画・同じ種類の通知を送信済みかどうかは確認していない。
+- そのため、同じ日に `reading-plans:daily`（または `reading-plans:remind`）を2回以上実行すると、同じ通知が実行した回数分だけ送信され、通知一覧に重複して表示される。
+- スケジューラによる実行は1日1回（20:00）のため通常の運用では発生しないが、動作確認のために手動で実行する場合は注意が必要。
+- **コーチ確認済み・対応不要**（手動で実行しない限り発生しないため、重複を防ぐ処理は入れない）。
+
+### ISBN検索で、書籍が見つからない場合がある
+
+- ISBN検索は Google Books API（`q=isbn:{ISBN}`）で書籍を検索し、結果の中から ISBN が一致する書籍を採用している。
+- 2026年10月時点で、Google Books API が `isbn:` 指定の検索に0件（`totalItems: 0`）を返すケースがあり、その場合は「該当する書籍が見つかりませんでした。」と表示される（和書・洋書とも確認）。
+- API は正常に応答（200）しており、アプリ側の不具合ではなく Google Books API 側の挙動によるもの。
+- **コーチ確認済み・対応不要**（アプリ側の問題ではないため、検索方法の変更や別APIによる補完は行わない）。

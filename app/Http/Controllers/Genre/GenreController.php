@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Genre;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Genre\GenreRequest;
 use App\Models\Genre;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class GenreController extends Controller
@@ -41,12 +41,28 @@ class GenreController extends Controller
 
     /**
      * ジャンルに紐づく書籍一覧を表示する
+     *
+     * ジャンル詳細へは「ジャンル一覧」と「マイ読書レポート」の2画面から遷移できるため、
+     * 遷移元をクエリパラメータ from で受け取り、「戻る」リンクの遷移先・文言を切り替える
+     * （from=reports の場合はマイ読書レポート、それ以外はジャンル一覧へ戻る）。
      */
-    public function show(Genre $genre): View
+    public function show(Request $request, Genre $genre): View
     {
-        $books = $genre->books()->with('genres')->paginate(9);
+        // 書籍一覧と同じく登録日時の新しい順（同じ日時の場合は ID の新しい順）に並べる。
+        // 中間テーブル book_genre にも created_at があるため、books テーブルのカラムと明示する。
+        // ページ送りしても from が引き継がれるよう withQueryString() を付ける
+        $books = $genre->books()
+            ->with('genres')
+            ->orderByDesc('books.created_at')
+            ->orderByDesc('books.id')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('genres.show', compact('genre', 'books'));
+        [$backUrl, $backLabel] = $request->query('from') === 'reports'
+            ? [route('reports.index'), 'マイ読書レポートに戻る']
+            : [route('genres.index'), 'ジャンル一覧に戻る'];
+
+        return view('genres.show', compact('genre', 'books', 'backUrl', 'backLabel'));
     }
 
     /**
@@ -70,23 +86,17 @@ class GenreController extends Controller
     /**
      * ジャンルを削除する
      *
-     * book_genresテーブルの外部キー制約（genre_id側はrestrictOnDelete）により、
-     * このジャンルに紐づく書籍が1件でも存在する場合、DB側が削除を拒否してくる。
-     * その場合はエラーメッセージを表示して元の画面に戻す。
+     * 書籍に紐づいているジャンルは削除できない。ここで事前に判定し、
+     * 紐づきがある場合はメッセージを表示して削除を中止する。
+     * （book_genre.genre_id の外部キーは削除時 CASCADE のため、DB側では削除を拒否しない）
      */
     public function destroy(Genre $genre): RedirectResponse
     {
-        try {
-            $genre->delete();
-        } catch (QueryException $e) {
-            // SQLSTATE 23000: 整合性制約違反（外部キー制約違反を含む）
-            if ($e->getCode() === '23000') {
-                return back()->with('error', 'このジャンルは書籍に紐づいているため削除できません。');
-            }
-
-            // 制約違反以外のエラーは想定外なのでそのまま投げる
-            throw $e;
+        if ($genre->books()->exists()) {
+            return back()->with('error', 'このジャンルは書籍に紐づいているため削除できません。');
         }
+
+        $genre->delete();
 
         return back()->with('success', 'ジャンルを削除しました。');
     }

@@ -32,6 +32,7 @@ return [
     ],
 
     'google_books' => [
+        'url' => env('GOOGLE_BOOKS_API_URL', 'https://www.googleapis.com/books/v1/volumes'),
         'key' => env('GOOGLE_BOOKS_API_KEY'),
     ],
 

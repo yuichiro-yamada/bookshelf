@@ -59,8 +59,8 @@
                             </div>
 
                             <p class="text-gray-600 mb-2"><strong>著者:</strong> {{ $book->author }}</p>
-                            <p class="text-gray-600 mb-2"><strong>ISBN:</strong> {{ $book->isbn }}</p>
-                            <p class="text-gray-600 mb-2"><strong>出版日:</strong> {{ $book->published_date }}</p>
+                            <p class="text-gray-600 mb-2"><strong>ISBN:</strong> {{ $book->isbn ?? '未登録' }}</p>
+                            <p class="text-gray-600 mb-2"><strong>出版日:</strong> {{ $book->published_date?->format('Y-m-d') ?? '未登録' }}</p>
                             <div class="mb-4">
                                 <strong>ジャンル:</strong>
                                 @foreach($book->genres as $genre)
@@ -159,9 +159,7 @@
                                             </div>
                                             <span class="text-sm text-gray-500">{{ $review->created_at->format('Y/m/d') }}</span>
                                         </div>
-                                        @if($review->comment)
-                                            <p class="text-gray-700">{{ $review->comment }}</p>
-                                        @endif
+                                        <p class="text-gray-700">{{ $review->comment }}</p>
 
                                         <div class="mt-3 flex items-center justify-between">
                                             <!-- いいねボタン -->
@@ -196,7 +194,7 @@
                                                 </a>
                                             @endauth
 
-                                            {{-- レビューの操作リンク（編集/削除。assertDontSeeで拾われないようBladeコメントに変更） --}}
+                                            {{-- レビューの操作リンク（編集・削除。投稿者本人のみ表示） --}}
                                             <div class="flex items-center gap-2">
                                                 @can('update', $review)
                                                     <a href="{{ route('reviews.edit', $review) }}" class="text-sm text-gray-500 hover:text-gray-700">編集</a>
